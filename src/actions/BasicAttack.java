@@ -6,8 +6,9 @@ import java.util.List;
 
 public class BasicAttack implements IAction {
 
+    @Override
     public void execute(ICombatant source, List<ICombatant> targets) {
-        if (targets == null || targets.isEmpty()) {
+        if (!isAvailable(source) || targets == null || targets.isEmpty()) {
             return;
         }
 
@@ -23,7 +24,13 @@ public class BasicAttack implements IAction {
                 source.getName(), target.getName(), damage);
     }
 
+    @Override
     public String getActionName() {
         return "BasicAttack";
+    }
+
+    @Override
+    public boolean isAvailable(ICombatant source) {
+        return source != null && source.isAlive();
     }
 }

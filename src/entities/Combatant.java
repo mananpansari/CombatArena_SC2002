@@ -24,6 +24,8 @@ public abstract class Combatant implements ICombatant {
 
     // Status effects
     private final List<IStatusEffect> activeEffects;
+    private boolean hasActedThisRound;
+    private int currentRound;
 
     // Constructor 
     protected Combatant(String name, int hp, int attack, int defense, int speed){
@@ -34,6 +36,8 @@ public abstract class Combatant implements ICombatant {
         this.defense = defense;
         this.speed = speed;
         this.activeEffects = new ArrayList<>();
+        this.hasActedThisRound = false;
+        this.currentRound = 0;
     }
 
     // ICombatant: Identity
@@ -106,11 +110,16 @@ public abstract class Combatant implements ICombatant {
 
     @Override
     public void tickStatusEffects(){
-        Iterator<IStatusEffect> it = activeEffects.iterator();
-        while(it.hasNext()){
-            IStatusEffect effect = it.next();
+        for (IStatusEffect effect : activeEffects) {
             effect.onTurnStart(this);
-            if(effect.isExpired()){
+        }
+    }
+
+    public void purgeExpiredStatusEffects() {
+        Iterator<IStatusEffect> it = activeEffects.iterator();
+        while (it.hasNext()) {
+            IStatusEffect effect = it.next();
+            if (effect.isExpired()) {
                 effect.onExpire(this);
                 it.remove();
             }
@@ -130,7 +139,7 @@ public abstract class Combatant implements ICombatant {
     @Override
     public boolean hasSmokeBombActive(){
         for(IStatusEffect effect:  activeEffects){
-            if("SMOKE_BOMB".equals(effect.getEffectName())){
+            if("SMOKE_BOMB".equals(effect.getEffectName()) && !effect.isExpired()){
                 return true;
             }
         }
@@ -140,6 +149,26 @@ public abstract class Combatant implements ICombatant {
     @Override
     public List<IStatusEffect> getActiveEffects(){
         return Collections.unmodifiableList(activeEffects);
+    }
+
+    public boolean hasActedThisRound() {
+        return hasActedThisRound;
+    }
+
+    public void markActedThisRound() {
+        hasActedThisRound = true;
+    }
+
+    public void resetActedThisRound() {
+        hasActedThisRound = false;
+    }
+
+    public int getCurrentRound() {
+        return currentRound;
+    }
+
+    public void setCurrentRound(int currentRound) {
+        this.currentRound = currentRound;
     }
 
     // Display Helper
@@ -153,7 +182,9 @@ public abstract class Combatant implements ICombatant {
         if(!activeEffects.isEmpty()){
             sb.append(" ");
             for (IStatusEffect e : activeEffects){
-                sb.append("[").append(e.getEffectName()).append("] ");
+                if (!e.isExpired()) {
+                    sb.append("[").append(e.getEffectName()).append("] ");
+                }
             }
         }
         return sb.toString().trim();
