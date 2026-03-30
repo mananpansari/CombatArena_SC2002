@@ -12,20 +12,25 @@ public class ItemAction implements IAction {
         this.itemIndex = itemIndex;
     }
 
+    @Override
     public void execute(ICombatant source, List<ICombatant> targets) {
-        if (!(source instanceof Player player) || !source.isAlive()) {
-            return;
-        }
-
-        if (!player.hasItemsLeft()) {
-            System.out.println("  No items left.");
+        if (!(source instanceof Player player) || !isAvailable(source)) {
             return;
         }
 
         player.useItem(itemIndex, targets);
     }
 
+    @Override
     public String getActionName() {
         return "ItemAction";
+    }
+
+    @Override
+    public boolean isAvailable(ICombatant source) {
+        if (!(source instanceof Player player) || !source.isAlive()) {
+            return false;
+        }
+        return itemIndex >= 0 && itemIndex < player.getInventory().size();
     }
 }

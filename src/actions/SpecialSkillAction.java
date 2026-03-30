@@ -7,12 +7,13 @@ import java.util.List;
 
 public class SpecialSkillAction implements IAction {
 
+    @Override
     public void execute(ICombatant source, List<ICombatant> targets) {
         if (!(source instanceof Player player) || !source.isAlive()) {
             return;
         }
 
-        if (!player.isSkillReady()) {
+        if (!isAvailable(source)) {
             System.out.printf("  %s is on cooldown for %d more turn(s).%n",
                     player.getSkillName(), player.getSkillCooldown());
             return;
@@ -21,7 +22,13 @@ public class SpecialSkillAction implements IAction {
         player.useSpecialSkill(targets);
     }
     
+    @Override
     public String getActionName() {
         return "SpecialSkillAction";
+    }
+
+    @Override
+    public boolean isAvailable(ICombatant source) {
+        return source instanceof Player player && source.isAlive() && player.isSkillReady();
     }
 }

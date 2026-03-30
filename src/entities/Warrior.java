@@ -1,8 +1,8 @@
 package entities;
 
+import effects.StunEffect;
 import interfaces.ICombatant;
 import interfaces.IItem;
-import interfaces.IStatusEffect;
 import java.util.List;
 
 public class Warrior extends Player{
@@ -27,13 +27,11 @@ public class Warrior extends Player{
         int damage = Math.max(0, this.getAttack() - target.getDefense());
         target.takeDamage(damage);
 
-        System.out.printf("  %s -> Shield Bash -> %s: %damage%n",
+        System.out.printf("  %s -> Shield Bash -> %s: %d damage%n",
             this.getName(), target.getName(), damage);
 
-            // Apply stun - target cannot act for current turn + next turn
-            // **TODO (integration): replace StunEffectStub with Person 3's real StunEffect:
-            target.applyStatusEffect(new StunEffectStub());
-            System.out.printf("  %s is STUNNED (2 turns)%n", target.getName());
+        target.applyStatusEffect(new StunEffect());
+        System.out.printf("  %s is STUNNED%n", target.getName());
     }
 
     @Override
@@ -50,33 +48,5 @@ public class Warrior extends Player{
         System.out.println("  | Deal BasicAttack to one            |");
         System.out.println("  | enemy + stun for 2 turns.          |");
         System.out.println("  +------------------------------------+");
-    }
-
-    public static class StunEffectStub implements IStatusEffect{
-        private int turnsRemaining = 2;
-
-        @Override
-        public void onApply(ICombatant target){
-        }
-
-        @Override
-        public void onTurnStart(ICombatant target){
-            turnsRemaining--;
-        }
-
-        @Override
-        public void onExpire(ICombatant target){
-            // Nothing to reverse
-        }
-
-        @Override
-        public boolean isExpired(){
-            return turnsRemaining <= 0;
-        }
-
-        @Override
-        public String getEffectName(){
-            return "STUNNED";
-        }
     }
 }

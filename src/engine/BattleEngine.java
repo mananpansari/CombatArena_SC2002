@@ -1,5 +1,6 @@
 package engine;
 
+import entities.Combatant;
 import entities.Enemy;
 import entities.Player;
 import interfaces.IAction;
@@ -32,9 +33,8 @@ public class BattleEngine {
         roundNumber++;
 
         // Build the full combatant list for turn order
-        List<ICombatant> allCombatants = new ArrayList<>();
-        allCombatants.add(player);
-        allCombatants.addAll(enemies);
+        List<ICombatant> allCombatants = getAllCombatants();
+        prepareRound(allCombatants);
 
         List<ICombatant> turnOrder = turnOrderStrategy.determineTurnOrder(allCombatants);
 
@@ -54,6 +54,7 @@ public class BattleEngine {
                 if (current instanceof Player p) {
                     p.decrementCooldown();
                 }
+                finishTurn(current);
                 continue;
             }
 
@@ -72,6 +73,8 @@ public class BattleEngine {
                 e.takeTurn(player);
             }
 
+            finishTurn(current);
+
             // Check loss condition after every action
             if (!player.isAlive()) {
                 return false;
@@ -86,7 +89,42 @@ public class BattleEngine {
             }
         }
 
+        previewUpcomingRound(getAllCombatants());
         return true; // battle continues
+    }
+
+    private List<ICombatant> getAllCombatants() {
+        List<ICombatant> allCombatants = new ArrayList<>();
+        allCombatants.add(player);
+        allCombatants.addAll(enemies);
+        return allCombatants;
+    }
+
+    private void prepareRound(List<ICombatant> combatants) {
+        for (ICombatant combatant : combatants) {
+            if (combatant instanceof Combatant concreteCombatant) {
+                concreteCombatant.resetActedThisRound();
+                concreteCombatant.setCurrentRound(roundNumber);
+                concreteCombatant.purgeExpiredStatusEffects();
+            }
+        }
+    }
+
+    private void finishTurn(ICombatant combatant) {
+        if (combatant instanceof Combatant concreteCombatant) {
+            concreteCombatant.markActedThisRound();
+            concreteCombatant.purgeExpiredStatusEffects();
+        }
+    }
+
+    private void previewUpcomingRound(List<ICombatant> combatants) {
+        int upcomingRound = roundNumber + 1;
+        for (ICombatant combatant : combatants) {
+            if (combatant instanceof Combatant concreteCombatant) {
+                concreteCombatant.setCurrentRound(upcomingRound);
+                concreteCombatant.purgeExpiredStatusEffects();
+            }
+        }
     }
 
     private void checkBackupSpawn() {
@@ -106,6 +144,10 @@ public class BattleEngine {
             System.out.println("\n  Backup enemies have arrived!");
             for (ICombatant backup : backupEnemies) {
                 System.out.printf("    %s joins the battle!%n", backup.getName());
+                if (backup instanceof Combatant concreteCombatant) {
+                    concreteCombatant.resetActedThisRound();
+                    concreteCombatant.setCurrentRound(roundNumber);
+                }
             }
             enemies.addAll(backupEnemies);
             backupSpawned = true;
