@@ -1,0 +1,23 @@
+package Boundary;
+
+import engine.GameSession;
+
+public class Main{
+  public static void main(String[] args) {
+
+    InputHandler input = new InputHandler();
+    LoadingScreen loader = new LoadingScreen(input);
+    boolean keepPlaying = true;
+
+    while (keepPlaying){
+      GameSession session = loader.setupGame();
+      session.start(input);
+      keepPlaying = input.getReplay();
+
+      if (keepPlaying) {
+        System.out.println("...Initialising new Combat Session...");
+    }
+  }
+    System.out.println("Exiting game, goodbye.");
+ }
+}
