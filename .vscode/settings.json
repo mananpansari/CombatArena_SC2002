@@ -1,0 +1,9 @@
+{
+    "java.project.referencedLibraries": [
+        "/Users/mananpansari/lib/javafx-sdk-26/lib/**/*.jar"
+    ],
+    "java.project.sourcePaths": [
+        "src"
+    ],
+    "java.project.outputPath": "bin"
+}
