@@ -1,4 +1,4 @@
-package Boundary;
+package boundary;
 
 import engine.BattleEngine;
 import entities.Player;

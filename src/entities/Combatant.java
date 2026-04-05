@@ -129,7 +129,7 @@ public abstract class Combatant implements ICombatant {
     @Override
     public boolean isStunned(){
         for(IStatusEffect effect : activeEffects) {
-            if ("STUNNED".equals(effect.getEffectName())){
+            if ("stunned".equals(effect.getEffectName())){
                 return true;
             }
         }
@@ -139,7 +139,7 @@ public abstract class Combatant implements ICombatant {
     @Override
     public boolean hasSmokeBombActive(){
         for(IStatusEffect effect:  activeEffects){
-            if("SMOKE_BOMB".equals(effect.getEffectName()) && !effect.isExpired()){
+            if("smokeBomb".equals(effect.getEffectName()) && !effect.isExpired()){
                 return true;
             }
         }

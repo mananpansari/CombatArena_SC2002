@@ -1,5 +1,10 @@
 package entities;
 
+import actions.BasicAttack;
+import actions.ItemAction;
+import actions.SpecialSkillAction;
+import interfaces.IAction;
+import interfaces.ICombatant;
 import interfaces.IItem;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,7 +27,7 @@ public abstract class Player extends Combatant{
         return !inventory.isEmpty();
     }
 
-    public void useItem(int index, List<interfaces.ICombatant> enemies){
+    public void useItem(int index, List<ICombatant> enemies){
         if(index < 0 || index >= inventory.size()){
             throw new IndexOutOfBoundsException("Invalid item index: " + index);
         }
@@ -32,8 +37,14 @@ public abstract class Player extends Combatant{
 
     // Special Skill Cooldown
 
-
     public int getSkillCooldown(){
+        return skillCooldown;
+    }
+
+    /**
+     * Alias for getSkillCooldown() – used by Boundary/GUI layers.
+     */
+    public int getSpecialSkillCooldown(){
         return skillCooldown;
     }
 
@@ -52,14 +63,25 @@ public abstract class Player extends Combatant{
     }
 
     // Special skill
-    public void useSpecialSkill(List<interfaces.ICombatant> targets){
+    public void useSpecialSkill(List<ICombatant> targets){
         executeSkillEffect(targets);
         startSkillCooldown();
     }
 
-    public abstract void executeSkillEffect(List<interfaces.ICombatant> targets);
-
+    public abstract void executeSkillEffect(List<ICombatant> targets);
 
     public abstract String getSkillName();
+
+    /**
+     * Returns the list of available actions for this player.
+     * Used by InputHandler and GUI to present choices.
+     */
+    public List<IAction> getActions(){
+        List<IAction> actions = new ArrayList<>();
+        actions.add(new BasicAttack());
+        actions.add(new SpecialSkillAction());
+        actions.add(new ItemAction(0));  // ItemAction with index 0 as default
+        return actions;
+    }
 
 }

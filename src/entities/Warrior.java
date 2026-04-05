@@ -6,14 +6,14 @@ import interfaces.IItem;
 import java.util.List;
 
 public class Warrior extends Player{
-    public static final int WARRIOR_HP = 260;
-    public static final int WARRIOR_ATTACK = 40;
-    public static final int WARRIOR_DEFENSE = 20;
-    public static final int WARRIOR_SPEED = 30;
+    public static final int warriorHp = 260;
+    public static final int warriorAttack = 40;
+    public static final int warriorDefense = 20;
+    public static final int warriorSpeed = 30;
 
     // Constructor
     public Warrior(List<IItem> items){
-        super("Warrior", WARRIOR_HP, WARRIOR_ATTACK, WARRIOR_DEFENSE, WARRIOR_SPEED, items);
+        super("Warrior", warriorHp, warriorAttack, warriorDefense, warriorSpeed, items);
     }
     @Override
     public void executeSkillEffect(List<ICombatant> targets){

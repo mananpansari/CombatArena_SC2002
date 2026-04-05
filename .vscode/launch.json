@@ -5,21 +5,14 @@
             "type": "java",
             "name": "Launch CombatArena GUI",
             "request": "launch",
-            "mainClass": "combatarena.gui.CombatArenaApp",
+            "mainClass": "gui.CombatArenaApp",
             "vmArgs": "--module-path /Users/mananpansari/lib/javafx-sdk-26/lib --add-modules javafx.controls,javafx.fxml"
         },
         {
             "type": "java",
             "name": "Launch CombatArena CLI",
             "request": "launch",
-            "mainClass": "combatarena.engine.GameSession",
-            "vmArgs": "--module-path /Users/mananpansari/lib/javafx-sdk-26/lib --add-modules javafx.controls,javafx.fxml"
-        },
-        {
-            "type": "java",
-            "name": "Launch JavaFX App",
-            "request": "launch",
-            "mainClass": "",
+            "mainClass": "boundary.MainStart",
             "vmArgs": "--module-path /Users/mananpansari/lib/javafx-sdk-26/lib --add-modules javafx.controls,javafx.fxml"
         }
     ]

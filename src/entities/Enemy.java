@@ -1,7 +1,6 @@
 package entities;
 
 import interfaces.ICombatant;
-import java.util.List;
 
 public abstract class Enemy extends Combatant{
     // Constructor

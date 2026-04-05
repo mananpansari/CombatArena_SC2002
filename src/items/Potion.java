@@ -7,12 +7,12 @@ import java.util.List;
 
 public class Potion implements IItem {
 
-    private static final int HEAL_AMOUNT = 100;
+    private static final int healAmount = 100;
 
     @Override
     public void use(ICombatant user, List<ICombatant> enemies) {
         int previousHp = user.getHp();
-        user.heal(HEAL_AMOUNT);
+        user.heal(healAmount);
 
         System.out.printf("  %s -> Item -> Potion used: HP: %d -> %d (+%d)%n",
                 user.getName(),

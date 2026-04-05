@@ -32,7 +32,7 @@ public class SmokeBombEffect implements IStatusEffect {
 
     @Override
     public String getEffectName() {
-        return "SMOKE_BOMB";
+        return "smokeBomb";
     }
 
     private Combatant requireCombatant(ICombatant target) {

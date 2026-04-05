@@ -1,9 +1,10 @@
-package combatarena.gui;
+package gui;
 
-import combatarena.action.*;
-import combatarena.engine.*;
-import combatarena.entity.*;
-import combatarena.item.Item;
+import actions.*;
+import engine.BattleEngine;
+import engine.LevelConfig;
+import entities.*;
+import interfaces.*;
 
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -15,22 +16,23 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.*;
 import javafx.stage.Stage;
 
+import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Controls the battle screen.
+ * Controls the battle screen GUI.
  *
- * The BattleEngine runs on a background thread. When it needs the player's
- * action (via ActionProvider), it blocks and waits for the JavaFX thread
- * to provide the choice through a synchronized handoff.
+ * Implements BattleEngine.ActionProvider so the engine can request
+ * player input. The engine runs on a background thread, and the GUI
+ * provides actions via a synchronized handoff.
  */
-public class GUIBattleController implements BattleObserver, ActionProvider {
+public class GUIBattleController implements BattleEngine.ActionProvider {
 
     private final Stage stage;
     private final Player player;
     private final LevelConfig levelConfig;
-    private final TurnOrderStrategy turnOrderStrategy;
+    private final ITurnOrderStrategy turnOrderStrategy;
     private final CombatArenaApp app;
 
     // UI elements
@@ -42,10 +44,14 @@ public class GUIBattleController implements BattleObserver, ActionProvider {
 
     // Action handoff between engine thread and FX thread
     private final Object actionLock = new Object();
-    private ActionChoice pendingAction = null;
+    private IAction pendingAction = null;
+    private List<ICombatant> pendingTargets = null;
+
+    // Reference to the engine for accessing state
+    private BattleEngine engine;
 
     public GUIBattleController(Stage stage, Player player, LevelConfig levelConfig,
-                                TurnOrderStrategy turnOrderStrategy, CombatArenaApp app) {
+                                ITurnOrderStrategy turnOrderStrategy, CombatArenaApp app) {
         this.stage = stage;
         this.player = player;
         this.levelConfig = levelConfig;
@@ -63,7 +69,7 @@ public class GUIBattleController implements BattleObserver, ActionProvider {
         roundLabel.setFont(Font.font("Monospace", FontWeight.BOLD, 16));
         roundLabel.setTextFill(Color.web("#e94560"));
 
-        // Middle top: status panel (HP bars for all combatants)
+        // Middle top: status panel
         statusPanel = new VBox(3);
         statusPanel.setPadding(new Insets(5));
         statusPanel.setStyle("-fx-background-color: #16213e; -fx-background-radius: 5;");
@@ -83,153 +89,96 @@ public class GUIBattleController implements BattleObserver, ActionProvider {
         actionBar.setPadding(new Insets(5));
 
         root.getChildren().addAll(roundLabel, statusPanel, logArea, actionBar);
-
         stage.setScene(new Scene(root, 720, 560));
 
         // Run the engine on a background thread
         Thread engineThread = new Thread(() -> {
-            BattleEngine engine = new BattleEngine(player, levelConfig, turnOrderStrategy, this, this);
-            engine.startBattle();
+            // Redirect System.out so engine/action printfs appear in the GUI log
+            PrintStream originalOut = System.out;
+            PrintStream guiOut = new PrintStream(new OutputStream() {
+                private final StringBuilder line = new StringBuilder();
+                @Override
+                public void write(int b) {
+                    if (b == '\n') {
+                        String text = line.toString();
+                        line.setLength(0);
+                        log(text);
+                    } else if (b != '\r') {
+                        line.append((char) b);
+                    }
+                }
+            }, true);
+            System.setOut(guiOut);
+
+            try {
+                engine = new BattleEngine(player, levelConfig, turnOrderStrategy);
+                runBattleLoop();
+            } catch (Exception ex) {
+                ex.printStackTrace(originalOut);
+                log("ERROR: " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            } finally {
+                System.setOut(originalOut);
+            }
         });
         engineThread.setDaemon(true);
         engineThread.start();
     }
 
     // ═══════════════════════════════════════════════
-    //  Logging helper
+    //  Battle loop — runs on background thread
+    //  Mirrors the sequence diagram flow
     // ═══════════════════════════════════════════════
 
-    private void log(String message) {
-        Platform.runLater(() -> {
-            logArea.appendText(message + "\n");
-        });
-    }
-
-    // ═══════════════════════════════════════════════
-    //  Status panel refresh
-    // ═══════════════════════════════════════════════
-
-    private void refreshStatus(List<ICombatant> allCombatants) {
-        Platform.runLater(() -> {
-            statusPanel.getChildren().clear();
-            for (ICombatant c : allCombatants) {
-                if (!c.isAlive()) continue;
-                HBox row = new HBox(8);
-                row.setAlignment(Pos.CENTER_LEFT);
-
-                Label nameLabel = new Label(padRight(c.getName(), 14));
-                nameLabel.setFont(Font.font("Monospace", FontWeight.BOLD, 12));
-                nameLabel.setTextFill(c instanceof Player ? Color.web("#00d2ff") : Color.web("#ff6b6b"));
-                nameLabel.setMinWidth(110);
-
-                // HP bar
-                double ratio = (double) c.getHp() / c.getMaxHp();
-                ProgressBar hpBar = new ProgressBar(ratio);
-                hpBar.setPrefWidth(180);
-                hpBar.setPrefHeight(16);
-                String barColor = ratio > 0.5 ? "#27ae60" : ratio > 0.25 ? "#f39c12" : "#e74c3c";
-                hpBar.setStyle("-fx-accent: " + barColor + ";");
-
-                Label hpText = new Label(c.getHp() + "/" + c.getMaxHp());
-                hpText.setFont(Font.font("Monospace", 11));
-                hpText.setTextFill(Color.LIGHTGRAY);
-                hpText.setMinWidth(60);
-
-                // Status effects
-                String effects = c.getStatusEffects().stream()
-                        .map(e -> e.getEffectName() + "(" + e.getDuration() + ")")
-                        .collect(Collectors.joining(", "));
-                Label effectLabel = new Label(effects);
-                effectLabel.setFont(Font.font("Monospace", 10));
-                effectLabel.setTextFill(Color.web("#ffd93d"));
-
-                row.getChildren().addAll(nameLabel, hpBar, hpText, effectLabel);
-                statusPanel.getChildren().add(row);
-            }
-        });
-    }
-
-    // ═══════════════════════════════════════════════
-    //  BattleObserver implementation
-    // ═══════════════════════════════════════════════
-
-    @Override
-    public void onBattleStart(Player player, List<ICombatant> enemies) {
+    private void runBattleLoop() {
         log("═══ BATTLE START ═══");
         log("Player: " + player.getName() + " | HP:" + player.getHp()
                 + " ATK:" + player.getAttack() + " DEF:" + player.getDefense()
                 + " SPD:" + player.getSpeed());
-        for (ICombatant e : enemies) {
+        for (ICombatant e : engine.getEnemies()) {
             log("  Enemy: " + e.getName() + " | HP:" + e.getHp()
                     + " ATK:" + e.getAttack() + " DEF:" + e.getDefense()
                     + " SPD:" + e.getSpeed());
         }
         log("");
-    }
 
-    @Override
-    public void onRoundStart(int roundNumber, List<ICombatant> allCombatants) {
-        Platform.runLater(() -> roundLabel.setText("⚔  Round " + roundNumber));
-        log("──── Round " + roundNumber + " ────");
-        refreshStatus(allCombatants);
-    }
+        boolean battleContinues = true;
+        while (battleContinues) {
+            int round = engine.getRoundNumber() + 1;
+            Platform.runLater(() -> roundLabel.setText("⚔  Round " + round));
+            log("──── Round " + round + " ────");
+            refreshStatus();
 
-    @Override
-    public void onRoundEnd(int roundNumber, List<ICombatant> allCombatants) {
-        // Optional
-    }
+            battleContinues = engine.runRound(this);
 
-    @Override
-    public void onCombatantStunned(ICombatant combatant) {
-        log("  💫 " + combatant.getName() + " is STUNNED — turn skipped!");
-    }
+            // Refresh status after every round so HP/deaths are visible
+            refreshStatus();
 
-    @Override
-    public void onActionChosen(ICombatant source, Action action, List<ICombatant> targets) {
-        // Nothing needed pre-execution in GUI
-    }
-
-    @Override
-    public void onActionExecuted(ICombatant source, Action action, List<ICombatant> targets) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("  ➤ ").append(source.getName()).append(" uses ").append(action.getActionName());
-        if (!targets.isEmpty()) {
-            String tNames = targets.stream().map(ICombatant::getName).collect(Collectors.joining(", "));
-            sb.append(" → ").append(tNames);
+            // Small delay between rounds for readability
+            try { Thread.sleep(300); } catch (InterruptedException ignored) {}
         }
-        log(sb.toString());
 
-        for (ICombatant t : targets) {
-            if (t.isAlive()) {
-                log("    " + t.getName() + " now at " + t.getHp() + "/" + t.getMaxHp() + " HP");
-            } else {
-                log("    " + t.getName() + " has been DEFEATED!");
-            }
+        // Battle ended — refresh one last time so final HP state is shown
+        refreshStatus();
+        try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+        showBattleResult();
+    }
+
+    private void showBattleResult() {
+        boolean playerWon = player.isAlive() && engine.allEnemiesDead();
+        log("\n═══ BATTLE " + (playerWon ? "WON" : "LOST") + " ═══");
+
+        if (playerWon) {
+            log(player.getName() + " wins with " + player.getHp() + "/" + player.getMaxHp() + " HP remaining.");
+            log("Rounds survived: " + engine.getRoundNumber());
+        } else {
+            log(player.getName() + " has fallen.");
+            log("Enemies remaining: " + engine.getLivingEnemies().size());
+            log("Rounds survived: " + engine.getRoundNumber());
         }
-    }
-
-    @Override
-    public void onDamageNullified(ICombatant attacker, ICombatant defender) {
-        log("  🌫 " + attacker.getName() + "'s attack blocked by smoke! 0 damage.");
-    }
-
-    @Override
-    public void onBackupSpawn(List<ICombatant> backupEnemies) {
-        log("\n  ⚠ REINFORCEMENTS ARRIVE!");
-        for (ICombatant e : backupEnemies) {
-            log("    + " + e.getName() + " | HP:" + e.getHp());
-        }
-        log("");
-    }
-
-    @Override
-    public void onBattleEnd(BattleResult result) {
-        log("\n═══ BATTLE " + (result.isPlayerWon() ? "WON" : "LOST") + " ═══");
-        log(result.toString());
 
         Platform.runLater(() -> {
             actionBar.getChildren().clear();
-            roundLabel.setText(result.isPlayerWon() ? "🏆 VICTORY!" : "💀 DEFEAT!");
+            roundLabel.setText(playerWon ? "🏆 VICTORY!" : "💀 DEFEAT!");
 
             Button newGameBtn = styledButton("New Game", "#27ae60");
             newGameBtn.setOnAction(e -> app.returnToSetup());
@@ -242,15 +191,13 @@ public class GUIBattleController implements BattleObserver, ActionProvider {
     }
 
     // ═══════════════════════════════════════════════
-    //  ActionProvider — blocks engine thread until
-    //  the player clicks an action button
+    //  BattleEngine.ActionProvider implementation
+    //  Follows the sequence diagram: getPlayerAction → getTargets
     // ═══════════════════════════════════════════════
 
     @Override
-    public ActionChoice getPlayerAction(Player player, List<ICombatant> enemies) {
-        List<ICombatant> livingEnemies = enemies.stream()
-                .filter(ICombatant::isAlive)
-                .collect(Collectors.toList());
+    public IAction getPlayerAction(Player player, List<ICombatant> livingEnemies) {
+        refreshStatus();
 
         // Show action buttons on FX thread
         Platform.runLater(() -> showActionButtons(player, livingEnemies));
@@ -258,6 +205,7 @@ public class GUIBattleController implements BattleObserver, ActionProvider {
         // Block engine thread until UI provides an action
         synchronized (actionLock) {
             pendingAction = null;
+            pendingTargets = null;
             while (pendingAction == null) {
                 try {
                     actionLock.wait();
@@ -265,24 +213,43 @@ public class GUIBattleController implements BattleObserver, ActionProvider {
             }
         }
 
-        // Hide buttons
-        Platform.runLater(() -> actionBar.getChildren().clear());
-
         return pendingAction;
+    }
+
+    @Override
+    public List<ICombatant> getTargets(Player player, List<ICombatant> livingEnemies, IAction action) {
+        // If targets were already resolved (e.g. during target picker), return them
+        if (pendingTargets != null) {
+            List<ICombatant> targets = pendingTargets;
+            // Clear and hide buttons
+            Platform.runLater(() -> actionBar.getChildren().clear());
+            return targets;
+        }
+
+        // For DefendAction, target is self
+        if (action instanceof DefendAction) {
+            Platform.runLater(() -> actionBar.getChildren().clear());
+            return List.of(player);
+        }
+
+        // Otherwise prompt for targets
+        Platform.runLater(() -> actionBar.getChildren().clear());
+        return livingEnemies;
     }
 
     /**
      * Provide the chosen action and wake up the engine thread.
      */
-    private void submitAction(ActionChoice choice) {
+    private void submitAction(IAction action, List<ICombatant> targets) {
         synchronized (actionLock) {
-            pendingAction = choice;
+            pendingAction = action;
+            pendingTargets = targets;
             actionLock.notifyAll();
         }
     }
 
     // ═══════════════════════════════════════════════
-    //  Action button builders
+    //  UI Builders
     // ═══════════════════════════════════════════════
 
     private void showActionButtons(Player player, List<ICombatant> livingEnemies) {
@@ -291,19 +258,21 @@ public class GUIBattleController implements BattleObserver, ActionProvider {
         // 1) Basic Attack
         Button atkBtn = styledButton("Basic Attack", "#3498db");
         atkBtn.setOnAction(e -> showTargetPicker(livingEnemies, target -> {
-            submitAction(new ActionChoice(new BasicAttack(), Collections.singletonList(target)));
+            log("  ➤ " + player.getName() + " → Basic Attack → " + target.getName());
+            submitAction(new BasicAttack(), List.of(target));
         }));
 
         // 2) Defend
         Button defBtn = styledButton("Defend", "#2ecc71");
         defBtn.setOnAction(e -> {
-            submitAction(new ActionChoice(new DefendAction(), Collections.singletonList(player)));
+            log("  ➤ " + player.getName() + " → Defend (+10 DEF)");
+            submitAction(new DefendAction(), List.of(player));
         });
 
         actionBar.getChildren().addAll(atkBtn, defBtn);
 
         // 3) Use Item (if available)
-        if (player.hasItems()) {
+        if (player.hasItemsLeft()) {
             Button itemBtn = styledButton("Use Item", "#f39c12");
             itemBtn.setOnAction(e -> showItemPicker(player, livingEnemies));
             actionBar.getChildren().add(itemBtn);
@@ -315,11 +284,13 @@ public class GUIBattleController implements BattleObserver, ActionProvider {
             skillBtn.setOnAction(e -> {
                 if (player instanceof Warrior) {
                     showTargetPicker(livingEnemies, target -> {
-                        submitAction(new ActionChoice(new SpecialSkillAction(), Collections.singletonList(target)));
+                        log("  ➤ " + player.getName() + " → " + player.getSkillName() + " → " + target.getName());
+                        submitAction(new SpecialSkillAction(), List.of(target));
                     });
                 } else {
                     // Wizard targets all
-                    submitAction(new ActionChoice(new SpecialSkillAction(), new ArrayList<>(livingEnemies)));
+                    log("  ➤ " + player.getName() + " → " + player.getSkillName() + " → All Enemies");
+                    submitAction(new SpecialSkillAction(), new ArrayList<>(livingEnemies));
                 }
             });
             actionBar.getChildren().add(skillBtn);
@@ -330,7 +301,7 @@ public class GUIBattleController implements BattleObserver, ActionProvider {
         }
     }
 
-    // ── Target picker popup ─────────────────────
+    // ── Target picker ───────────────────────────
 
     private void showTargetPicker(List<ICombatant> enemies, java.util.function.Consumer<ICombatant> callback) {
         actionBar.getChildren().clear();
@@ -357,10 +328,14 @@ public class GUIBattleController implements BattleObserver, ActionProvider {
         prompt.setFont(Font.font("Monospace", FontWeight.BOLD, 12));
         actionBar.getChildren().add(prompt);
 
-        for (Item item : new ArrayList<>(player.getInventory())) {
+        List<IItem> items = player.getInventory();
+        for (int i = 0; i < items.size(); i++) {
+            IItem item = items.get(i);
+            final int itemIndex = i;
             Button btn = styledButton(item.getItemName(), "#e67e22");
             btn.setOnAction(e -> {
-                submitAction(new ActionChoice(new ItemAction(item), new ArrayList<>(livingEnemies)));
+                log("  ➤ " + player.getName() + " → Item → " + item.getItemName());
+                submitAction(new ItemAction(itemIndex), new ArrayList<>(livingEnemies));
             });
             actionBar.getChildren().add(btn);
         }
@@ -369,6 +344,61 @@ public class GUIBattleController implements BattleObserver, ActionProvider {
         Button backBtn = styledButton("Back", "#7f8c8d");
         backBtn.setOnAction(e -> showActionButtons(player, livingEnemies));
         actionBar.getChildren().add(backBtn);
+    }
+
+    // ═══════════════════════════════════════════════
+    //  Status panel & log
+    // ═══════════════════════════════════════════════
+
+    private void log(String message) {
+        Platform.runLater(() -> logArea.appendText(message + "\n"));
+    }
+
+    private void refreshStatus() {
+        if (engine == null) return;
+
+        List<ICombatant> allCombatants = new ArrayList<>();
+        allCombatants.add(player);
+        allCombatants.addAll(engine.getEnemies());
+
+        Platform.runLater(() -> {
+            statusPanel.getChildren().clear();
+            for (ICombatant c : allCombatants) {
+                if (!c.isAlive()) continue;
+                HBox row = new HBox(8);
+                row.setAlignment(Pos.CENTER_LEFT);
+
+                Label nameLabel = new Label(padRight(c.getName(), 14));
+                nameLabel.setFont(Font.font("Monospace", FontWeight.BOLD, 12));
+                nameLabel.setTextFill(c instanceof Player ? Color.web("#00d2ff") : Color.web("#ff6b6b"));
+                nameLabel.setMinWidth(110);
+
+                // HP bar
+                double ratio = (double) c.getHp() / c.getMaxHp();
+                ProgressBar hpBar = new ProgressBar(ratio);
+                hpBar.setPrefWidth(180);
+                hpBar.setPrefHeight(16);
+                String barColor = ratio > 0.5 ? "#27ae60" : ratio > 0.25 ? "#f39c12" : "#e74c3c";
+                hpBar.setStyle("-fx-accent: " + barColor + ";");
+
+                Label hpText = new Label(c.getHp() + "/" + c.getMaxHp());
+                hpText.setFont(Font.font("Monospace", 11));
+                hpText.setTextFill(Color.LIGHTGRAY);
+                hpText.setMinWidth(60);
+
+                // Status effects
+                String effects = c.getActiveEffects().stream()
+                        .filter(e -> !e.isExpired())
+                        .map(IStatusEffect::getEffectName)
+                        .collect(Collectors.joining(", "));
+                Label effectLabel = new Label(effects);
+                effectLabel.setFont(Font.font("Monospace", 10));
+                effectLabel.setTextFill(Color.web("#ffd93d"));
+
+                row.getChildren().addAll(nameLabel, hpBar, hpText, effectLabel);
+                statusPanel.getChildren().add(row);
+            }
+        });
     }
 
     // ═══════════════════════════════════════════════

@@ -33,7 +33,7 @@ public class StunEffect implements IStatusEffect {
 
     @Override
     public String getEffectName() {
-        return "STUNNED";
+        return "stunned";
     }
 
     private Combatant requireCombatant(ICombatant target) {

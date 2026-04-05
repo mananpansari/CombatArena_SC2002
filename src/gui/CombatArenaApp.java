@@ -1,8 +1,10 @@
-package combatarena.gui;
+package gui;
 
-import combatarena.engine.*;
-import combatarena.entity.*;
-import combatarena.item.*;
+import engine.LevelConfig;
+import engine.SpeedBasedTurnOrder;
+import entities.*;
+import interfaces.*;
+import items.*;
 
 import javafx.application.Application;
 import javafx.geometry.Insets;
@@ -14,26 +16,25 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.*;
 import javafx.stage.Stage;
 
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Extremely simple JavaFX GUI for the Combat Arena game.
- * Replaces the CLI with a basic windowed interface.
+ * JavaFX GUI entry point for the Combat Arena game.
+ * Built on top of the UML class diagram — uses the flat-package structure.
  */
 public class CombatArenaApp extends Application {
 
     private Stage primaryStage;
-    private Player player;
-    private LevelConfig.Difficulty difficulty;
 
     @Override
     public void start(Stage stage) {
         this.primaryStage = stage;
         stage.setTitle("Combat Arena");
-        stage.setMinWidth(700);
-        stage.setMinHeight(500);
+        stage.setMinWidth(720);
+        stage.setMinHeight(540);
 
         showSetupScreen();
-
         stage.show();
     }
 
@@ -47,7 +48,6 @@ public class CombatArenaApp extends Application {
         root.setAlignment(Pos.TOP_CENTER);
         root.setStyle("-fx-background-color: #1a1a2e;");
 
-        // Title
         Label title = new Label("⚔  COMBAT ARENA  ⚔");
         title.setFont(Font.font("Monospace", FontWeight.BOLD, 28));
         title.setTextFill(Color.web("#e94560"));
@@ -71,7 +71,11 @@ public class CombatArenaApp extends Application {
         // ── Item selection ──────────────────
         Label itemLabel = sectionLabel("Choose 2 items (duplicates allowed):");
 
-        String[] itemNames = {"Potion — Heal 100 HP", "Power Stone — Trigger skill (no CD)", "Smoke Bomb — Nullify damage 2 turns"};
+        String[] itemNames = {
+            "Potion — Heal 100 HP",
+            "Power Stone — Trigger skill (no CD)",
+            "Smoke Bomb — Nullify damage 2 turns"
+        };
         ComboBox<String> item1 = new ComboBox<>();
         item1.getItems().addAll(itemNames);
         item1.getSelectionModel().selectFirst();
@@ -82,7 +86,8 @@ public class CombatArenaApp extends Application {
         item2.getSelectionModel().selectFirst();
         item2.setStyle("-fx-background-color: #16213e; -fx-text-fill: white;");
 
-        HBox itemRow = new HBox(10, new Label("Item 1:") {{ setTextFill(Color.LIGHTGRAY); }}, item1,
+        HBox itemRow = new HBox(10,
+                new Label("Item 1:") {{ setTextFill(Color.LIGHTGRAY); }}, item1,
                 new Label("Item 2:") {{ setTextFill(Color.LIGHTGRAY); }}, item2);
         itemRow.setAlignment(Pos.CENTER_LEFT);
         itemRow.setPadding(new Insets(0, 0, 0, 20));
@@ -114,32 +119,43 @@ public class CombatArenaApp extends Application {
         startBtn.setStyle("-fx-background-color: #e94560; -fx-text-fill: white; -fx-font-size: 16; "
                 + "-fx-padding: 10 30; -fx-cursor: hand;");
         startBtn.setOnAction(e -> {
-            // Build player
-            Goblin.resetCounter();
-            Wolf.resetCounter();
+            // Build items
+            List<IItem> items = new ArrayList<>();
+            items.add(createItem(item1.getSelectionModel().getSelectedIndex()));
+            items.add(createItem(item2.getSelectionModel().getSelectedIndex()));
 
+            // Build player
+            Player player;
             if (rbWarrior.isSelected()) {
-                player = new Warrior();
+                player = new Warrior(items);
             } else {
-                player = new Wizard();
+                player = new Wizard(items);
             }
 
-            player.addItem(createItem(item1.getSelectionModel().getSelectedIndex()));
-            player.addItem(createItem(item2.getSelectionModel().getSelectedIndex()));
+            // Build level config
+            LevelConfig level;
+            if (rbEasy.isSelected()) {
+                level = new LevelConfig("Easy",
+                    List.of(new Goblin("A"), new Goblin("B"), new Goblin("C")),
+                    List.of());
+            } else if (rbMedium.isSelected()) {
+                level = new LevelConfig("Medium",
+                    List.of(new Goblin("A"), new Wolf("A")),
+                    List.of(new Wolf("B"), new Wolf("C")));
+            } else {
+                level = new LevelConfig("Hard",
+                    List.of(new Goblin("A"), new Goblin("B")),
+                    List.of(new Goblin("C"), new Wolf("A"), new Wolf("B")));
+            }
 
-            if (rbEasy.isSelected()) difficulty = LevelConfig.Difficulty.EASY;
-            else if (rbMedium.isSelected()) difficulty = LevelConfig.Difficulty.MEDIUM;
-            else difficulty = LevelConfig.Difficulty.HARD;
-
-            showBattleScreen();
+            showBattleScreen(player, level);
         });
 
         root.getChildren().addAll(title, classBox, itemBox, diffBox, startBtn);
-
-        primaryStage.setScene(new Scene(root, 700, 520));
+        primaryStage.setScene(new Scene(root, 720, 540));
     }
 
-    private Item createItem(int index) {
+    private IItem createItem(int index) {
         switch (index) {
             case 0: return new Potion();
             case 1: return new PowerStone();
@@ -151,7 +167,6 @@ public class CombatArenaApp extends Application {
     private Label sectionLabel(String text) {
         Label l = new Label(text);
         l.setFont(Font.font("Monospace", FontWeight.BOLD, 14));
-        l.setTextFill(Color.web("#0f3460"));
         l.setTextFill(Color.web("#e94560"));
         return l;
     }
@@ -160,12 +175,9 @@ public class CombatArenaApp extends Application {
     //  BATTLE SCREEN
     // ═══════════════════════════════════════════════════
 
-    private void showBattleScreen() {
-        LevelConfig level = LevelFactory.createLevel(difficulty);
-        TurnOrderStrategy strategy = new SpeedBasedTurnOrder();
-
-        // Create the battle UI controller
-        GUIBattleController controller = new GUIBattleController(primaryStage, player, level, strategy, this);
+    private void showBattleScreen(Player player, LevelConfig level) {
+        GUIBattleController controller = new GUIBattleController(
+                primaryStage, player, level, new SpeedBasedTurnOrder(), this);
         controller.show();
     }
 
@@ -175,8 +187,6 @@ public class CombatArenaApp extends Application {
     public void returnToSetup() {
         showSetupScreen();
     }
-
-    // ═══════════════════════════════════════════════════
 
     public static void main(String[] args) {
         launch(args);

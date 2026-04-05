@@ -6,7 +6,7 @@ import interfaces.IStatusEffect;
 
 public class DefendEffect implements IStatusEffect {
 
-    private static final int DEFENSE_BONUS = 10;
+    private static final int defenseBonus = 10;
 
     private Combatant owner;
     private int expiresAfterRound;
@@ -15,7 +15,7 @@ public class DefendEffect implements IStatusEffect {
     public void onApply(ICombatant target) {
         owner = requireCombatant(target);
         expiresAfterRound = owner.getCurrentRound() + 1;
-        owner.setDefense(owner.getDefense() + DEFENSE_BONUS);
+        owner.setDefense(owner.getDefense() + defenseBonus);
     }
 
     @Override
@@ -26,7 +26,7 @@ public class DefendEffect implements IStatusEffect {
     @Override
     public void onExpire(ICombatant target) {
         if (owner != null) {
-            owner.setDefense(owner.getDefense() - DEFENSE_BONUS);
+            owner.setDefense(owner.getDefense() - defenseBonus);
         }
     }
 
@@ -37,7 +37,7 @@ public class DefendEffect implements IStatusEffect {
 
     @Override
     public String getEffectName() {
-        return "DEFEND";
+        return "defend";
     }
 
     private Combatant requireCombatant(ICombatant target) {

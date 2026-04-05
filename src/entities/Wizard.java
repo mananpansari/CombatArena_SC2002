@@ -6,15 +6,15 @@ import java.util.List;
 
 public class Wizard extends Player{
 
-    private static final int WIZARD_HP = 200;
-    private static final int WIZARD_ATTACK = 50;
-    private static final int WIZARD_DEFENSE = 10;
-    private static final int WIZARD_SPEED = 20;
+    private static final int wizardHp = 200;
+    private static final int wizardAttack = 50;
+    private static final int wizardDefense = 10;
+    private static final int wizardSpeed = 20;
 
     private int arcaneBlastBonusAtk = 0;
 
     public Wizard(List<IItem> items){
-        super("Wizard", WIZARD_HP,WIZARD_ATTACK, WIZARD_DEFENSE, WIZARD_SPEED, items);
+        super("Wizard", wizardHp,wizardAttack, wizardDefense, wizardSpeed, items);
     }
 
 
