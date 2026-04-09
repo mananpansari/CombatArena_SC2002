@@ -19,7 +19,7 @@ public class BattleEngine {
     private final List<ICombatant> backupEnemies;
     private boolean backupSpawned;
     private int roundNumber;
-    private final Stack<ICommand> turnHistory = new Stack<>();
+    private final Stack<ICommand> commandHistory = new Stack<>();
 
     public BattleEngine(Player player, LevelConfig level, ITurnOrderStrategy turnOrderStrategy) {
         this.player = player;
@@ -28,6 +28,12 @@ public class BattleEngine {
         this.turnOrderStrategy = turnOrderStrategy;
         this.backupSpawned = false;
         this.roundNumber = 0;
+    }
+
+    public void processTurn(IAction action, ICombatant attacker, List<ICombatant> targets) {
+        ICommand command = new ActionCommand(this, action, attacker, targets);
+        command.execute();
+        commandHistory.push(command);
     }
 
     // Run one full round. Returns true if the battle is still going, false if over.
@@ -78,21 +84,17 @@ public class BattleEngine {
                 }
 
                 if (isChronos) {
-                    action.execute(p, null); // Consume item and print message
-                    triggerChronosTimeReversal();
+                    action.perform(p, null); // Consume item and print message
+                    timeReversal();
                     return true; // Abort the current round execution so it starts again!
                 } else {
                     List<ICombatant> targets = actionProvider.getTargets(p, livingEnemies, action);
-                    ICommand command = new TurnCommand(this, action, p, targets);
-                    command.execute(); 
-                    turnHistory.push(command); // Save it to the stack
+                    processTurn(action, p, targets);
                 }
 
             } else if (current instanceof Enemy e) {
                 // Enemies always use BasicAttack on the player
-                ICommand enemyCommand = new EnemyTurnCommand(this, e, player);
-                enemyCommand.execute();
-                turnHistory.push(enemyCommand);
+                processTurn(new actions.BasicAttack(), e, List.of(player));
             }
 
             finishTurn(current);
@@ -211,25 +213,18 @@ public class BattleEngine {
     }
 
     // Triggering the Chronos Hourglass
-    public void triggerChronosTimeReversal() {
-        if (turnHistory.isEmpty()) {
+    public void timeReversal() {
+        if (commandHistory.isEmpty()) {
             System.out.println("  You cannot turn back time any further!");
             return;
         }
 
-        // We want to undo all actions that occurred in the CURRENT round,
-        // and optionally actions from the previous round if they were the start of our re-do point.
-        // The user effectively wants to 'start the previous round again'.
-        // If we are currently in Round 2, we should go back to the start of Round 1.
-        // Wait, "go back to the previous round. And the previous round should start again."
-        // Let's pop all commands where backupState.roundNumber >= (this.roundNumber - 1).
-        
         int targetRound = Math.max(1, this.roundNumber - 1);
 
-        while (!turnHistory.isEmpty()) {
-            ICommand lastTurn = turnHistory.peek();
+        while (!commandHistory.isEmpty()) {
+            ICommand lastTurn = commandHistory.peek();
             if (lastTurn.getBackupState().getRoundNumber() >= targetRound) {
-                lastTurn = turnHistory.pop();
+                lastTurn = commandHistory.pop();
                 lastTurn.undo();
             } else {
                 break; // We've removed all actions from the target round and beyond

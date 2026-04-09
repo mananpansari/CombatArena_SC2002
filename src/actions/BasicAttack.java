@@ -7,7 +7,7 @@ import java.util.List;
 public class BasicAttack implements IAction {
 
     @Override
-    public void execute(ICombatant source, List<ICombatant> targets) {
+    public void perform(ICombatant source, List<ICombatant> targets) {
         if (!isAvailable(source) || targets == null || targets.isEmpty()) {
             return;
         }
@@ -18,6 +18,11 @@ public class BasicAttack implements IAction {
         }
 
         int damage = Math.max(0, source.getAttack() - target.getDefense());
+        
+        if (target.hasSmokeBombActive()) {
+            damage = 0;
+        }
+
         target.takeDamage(damage);
 
         System.out.printf("  %s -> Basic Attack -> %s: %d damage%n",

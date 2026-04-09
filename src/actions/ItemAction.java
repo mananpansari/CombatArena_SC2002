@@ -13,7 +13,7 @@ public class ItemAction implements IAction {
     }
 
     @Override
-    public void execute(ICombatant source, List<ICombatant> targets) {
+    public void perform(ICombatant source, List<ICombatant> targets) {
         if (!(source instanceof Player player) || !isAvailable(source)) {
             return;
         }
