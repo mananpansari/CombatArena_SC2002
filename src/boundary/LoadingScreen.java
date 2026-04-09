@@ -1,6 +1,8 @@
 package boundary;
 
+import engine.CounterAttackObserver;
 import engine.GameSession;
+import engine.IStackObserver;
 import engine.LevelConfig;
 import entities.*;
 import interfaces.ICombatant;
@@ -67,16 +69,13 @@ public class LoadingScreen {
 
     switch (choice) {
       case 1:
-        // Easy: 3 Aggressive Goblins (default strategy)
+        // Easy: 3 Aggressive Goblins, no observers
         return new LevelConfig("Easy",
             List.of(new Goblin("A"), new Goblin("B"), new Goblin("C")),
             List.of());
 
       case 2:
-        // Medium: Mixed strategies
-        // - Goblin A: Aggressive (default)
-        // - Wolf A: Defensive (default)
-        // - Backup: Wolf B with Power Ring (+5 ATK) via Decorator Pattern
+        // Medium: Mixed strategies, Power Ring wolf
         Wolf wolfB = new Wolf("B");
         ICombatant equippedWolf = new PowerRingDecorator(wolfB);
         return new LevelConfig("Medium",
@@ -85,22 +84,26 @@ public class LoadingScreen {
 
       case 3:
         // Hard: Full pattern showcase
-        // - Goblin A: Aggressive (default)
-        // - Goblin B: Support strategy — heals wounded allies
+        // — Goblin B: Support healer (Strategy Pattern)
         Goblin supportGoblin = new Goblin("B");
         supportGoblin.setStrategy(new SupportStrategy());
 
-        // - Backup wave: an armored goblin (Iron Armor +10 DEF)
-        //   and a wolf with both Power Ring (+5 ATK) AND Iron Armor (+10 DEF)
+        // — Backup wave: armored goblin + elite wolf (Decorator Pattern)
         Goblin gobC = new Goblin("C");
         ICombatant armoredGoblin = new IronArmorDecorator(gobC);
 
         Wolf wolfA = new Wolf("A");
         ICombatant eliteWolf = new PowerRingDecorator(new IronArmorDecorator(wolfA));
 
+        // — Observer Pattern: elite wolf has a Spiked Shield (5 thorns damage)
+        //   Attacking the elite wolf triggers a counter-attack BEFORE the hit lands
+        List<IStackObserver> observers = new ArrayList<>();
+        observers.add(new CounterAttackObserver(eliteWolf, 5));
+
         return new LevelConfig("Hard",
             List.of(new Goblin("A"), supportGoblin),
-            List.of(armoredGoblin, eliteWolf));
+            List.of(armoredGoblin, eliteWolf),
+            observers);
 
       default:
         return new LevelConfig("Easy",

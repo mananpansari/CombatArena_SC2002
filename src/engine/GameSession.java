@@ -25,9 +25,17 @@ public class GameSession {
     public void start(BattleEngine.ActionProvider actionProvider) {
         engine = new BattleEngine(player, level, turnOrderStrategy);
 
+        // Register all observers from the level configuration
+        for (IStackObserver observer : level.getObservers()) {
+            engine.registerObserver(observer);
+        }
+
         System.out.println("=== BATTLE START ===");
         System.out.printf("  Difficulty: %s%n", level.getDifficulty());
         System.out.printf("  Player: %s%n", player.getName());
+        if (!level.getObservers().isEmpty()) {
+            System.out.printf("  ⚡ %d reactive observer(s) active%n", level.getObservers().size());
+        }
         System.out.println();
 
         boolean battleContinues = true;

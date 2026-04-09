@@ -23,6 +23,10 @@ public class BattleEngine {
     private int roundNumber;
     private final Stack<ICommand> commandHistory = new Stack<>();
 
+    // ── Observer Pattern: reactive action stack ──
+    private final List<IStackObserver> stackObservers = new ArrayList<>();
+    private static final int MAX_REACTION_DEPTH = 5;
+
     public BattleEngine(Player player, LevelConfig level, ITurnOrderStrategy turnOrderStrategy) {
         this.player = player;
         this.enemies = new ArrayList<>(level.getInitialEnemies());
@@ -33,25 +37,81 @@ public class BattleEngine {
     }
 
     // ═══════════════════════════════════════════════════
-    //  COMMAND STACK — processTurn wraps every action
+    //  OBSERVER REGISTRATION (Subject role)
     // ═══════════════════════════════════════════════════
 
-    public void processTurn(IAction action, ICombatant attacker, List<ICombatant> targets) {
-        ICommand command = new ActionCommand(this, action, attacker, targets);
-        command.execute();
-        commandHistory.push(command);
+    public void registerObserver(IStackObserver observer) {
+        stackObservers.add(observer);
+    }
+
+    public void removeObserver(IStackObserver observer) {
+        stackObservers.remove(observer);
     }
 
     // ═══════════════════════════════════════════════════
-    //  DECORATOR UTILITY — unwraps nested decorators
+    //  COMMAND STACK — LIFO resolution with reactions
     // ═══════════════════════════════════════════════════
 
     /**
-     * Recursively peels off CombatantDecorator layers to reach the
-     * base Player / Enemy / Combatant underneath.
-     * Used for instanceof type-checking while keeping the decorated
-     * version for stat calculations (attack, defense, etc.).
+     * Core turn processing with reactive action stack.
+     *
+     * 1. Build the ActionCommand
+     * 2. Push it onto a local resolution stack
+     * 3. Notify all observers — reactions get pushed ON TOP (LIFO)
+     * 4. Resolve the stack top-down: reactions execute BEFORE the original
+     * 5. Every resolved command is also pushed onto commandHistory for undo
      */
+    public void processTurn(IAction action, ICombatant attacker, List<ICombatant> targets) {
+        processTurn(new ActionCommand(this, action, attacker, targets));
+    }
+
+    public void processTurn(ActionCommand command) {
+        // Build the LIFO resolution stack
+        Stack<ActionCommand> resolutionStack = new Stack<>();
+        resolutionStack.push(command);
+
+        System.out.printf("  ▸ %s → %s%n",
+                command.getAttacker().getName(),
+                command.getAction().getActionName());
+
+        // Notify observers — reactions pile on top
+        notifyObservers(resolutionStack, command, 0);
+
+        // Resolve LIFO: reactions first, then original action
+        if (resolutionStack.size() > 1) {
+            System.out.println("  Resolving stack...");
+        }
+        while (!resolutionStack.isEmpty()) {
+            ActionCommand cmd = resolutionStack.pop();
+            cmd.execute();
+            commandHistory.push(cmd);
+        }
+    }
+
+    /**
+     * Recursively notifies all observers about a pending action.
+     * If an observer returns a reaction, it is pushed on top and
+     * observers are notified again about the reaction (chain reactions).
+     * Depth-limited to prevent infinite loops.
+     */
+    private void notifyObservers(Stack<ActionCommand> stack, ActionCommand pending, int depth) {
+        if (depth >= MAX_REACTION_DEPTH) {
+            return;
+        }
+        for (IStackObserver observer : stackObservers) {
+            ActionCommand reaction = observer.onActionPending(pending);
+            if (reaction != null) {
+                stack.push(reaction);
+                // Recursively check if anything reacts to the reaction
+                notifyObservers(stack, reaction, depth + 1);
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  DECORATOR UTILITY
+    // ═══════════════════════════════════════════════════
+
     private ICombatant unwrap(ICombatant c) {
         while (c instanceof CombatantDecorator d) {
             c = d.getWrappedCombatant();
@@ -76,13 +136,10 @@ public class BattleEngine {
                 continue;
             }
 
-            // Unwrap once per iteration for type checks
             ICombatant base = unwrap(current);
 
-            // Tick status effects
             current.tickStatusEffects();
 
-            // Stun check
             if (current.isStunned()) {
                 System.out.printf("  %s is STUNNED and cannot act.%n", current.getName());
                 if (base instanceof Player p) {
@@ -99,7 +156,6 @@ public class BattleEngine {
                 List<ICombatant> livingEnemies = getLivingEnemies();
                 IAction action = actionProvider.getPlayerAction(p, livingEnemies);
 
-                // Detect Chronos Hourglass usage
                 boolean isChronos = false;
                 if (action instanceof actions.ItemAction itemAct) {
                     if (itemAct.getItem(p) instanceof items.ChronosHourglass) {
@@ -110,25 +166,20 @@ public class BattleEngine {
                 if (isChronos) {
                     action.perform(p, null);
                     timeReversal();
-                    return true; // abort to restart from previous round
+                    return true;
                 } else {
                     List<ICombatant> targets = actionProvider.getTargets(p, livingEnemies, action);
-                    processTurn(action, current, targets); // 'current' keeps decorator stats
+                    processTurn(action, current, targets);
                 }
 
             } else if (base instanceof Enemy e) {
                 // ── ENEMY TURN — Strategy Pattern ──
                 ICombatStrategy strategy = e.getStrategy();
                 if (strategy != null) {
-                    // The strategy builds an ActionCommand using 'current'
-                    // (the potentially-decorated version) so that equipment
-                    // bonuses are reflected in damage calculations.
                     ActionCommand cmd = strategy.decideAction(
                             this, current, List.of(player), getLivingEnemies());
-                    cmd.execute();
-                    commandHistory.push(cmd);
+                    processTurn(cmd); // Route through LIFO stack for observer reactions
                 } else {
-                    // Fallback: no strategy assigned → simple basic attack
                     processTurn(new actions.BasicAttack(), current, List.of(player));
                 }
             }
@@ -151,7 +202,7 @@ public class BattleEngine {
     }
 
     // ═══════════════════════════════════════════════════
-    //  ROUND MANAGEMENT (decorator-aware)
+    //  ROUND MANAGEMENT
     // ═══════════════════════════════════════════════════
 
     private List<ICombatant> getAllCombatants() {
@@ -248,7 +299,6 @@ public class BattleEngine {
         this.enemies.addAll(snapshot.getEnemiesSnapshot());
 
         for (ICombatant c : getAllCombatants()) {
-            // getId() on a decorator delegates to the base — so lookup works
             if (snapshot.getHealthMap().containsKey(c.getId())) {
                 int pastHealth = snapshot.getHealthMap().get(c.getId());
                 c.setHp(pastHealth);
