@@ -153,9 +153,13 @@ public class CombatArenaApp extends Application {
                 // Backup: armored goblin (+10 DEF) and elite wolf (+5 ATK, +10 DEF)
                 interfaces.ICombatant armoredGoblin = new IronArmorDecorator(new Goblin("C"));
                 interfaces.ICombatant eliteWolf = new PowerRingDecorator(new IronArmorDecorator(new Wolf("A")));
+                // Observer: elite wolf has Spiked Shield (5 thorns on hit)
+                List<engine.IStackObserver> observers = new ArrayList<>();
+                observers.add(new engine.CounterAttackObserver(eliteWolf, 5));
                 level = new LevelConfig("Hard",
                     List.of(new Goblin("A"), supportGoblin),
-                    List.of(armoredGoblin, eliteWolf));
+                    List.of(armoredGoblin, eliteWolf),
+                    observers);
             }
 
             showBattleScreen(player, level);
