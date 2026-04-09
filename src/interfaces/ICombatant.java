@@ -4,6 +4,8 @@ import java.util.List;
 
 public interface ICombatant {
 
+    String getId();
+
     String getName();
 
     int getHp();
@@ -11,6 +13,8 @@ public interface ICombatant {
     int getMaxHp();
 
     void takeDamage(int Damage);
+
+    void setHp(int hp);
 
     void heal(int amount);
 

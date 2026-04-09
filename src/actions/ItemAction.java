@@ -33,4 +33,11 @@ public class ItemAction implements IAction {
         }
         return itemIndex >= 0 && itemIndex < player.getInventory().size();
     }
+
+    public interfaces.IItem getItem(Player player) {
+        if (itemIndex >= 0 && itemIndex < player.getInventory().size()) {
+            return player.getInventory().get(itemIndex);
+        }
+        return null;
+    }
 }

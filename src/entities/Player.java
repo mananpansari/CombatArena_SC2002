@@ -41,6 +41,10 @@ public abstract class Player extends Combatant{
         return skillCooldown;
     }
 
+    public void setSkillCooldown(int skillCooldown) {
+        this.skillCooldown = skillCooldown;
+    }
+
     /**
      * Alias for getSkillCooldown() – used by Boundary/GUI layers.
      */

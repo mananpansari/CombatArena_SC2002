@@ -74,7 +74,8 @@ public class CombatArenaApp extends Application {
         String[] itemNames = {
             "Potion — Heal 100 HP",
             "Power Stone — Trigger skill (no CD)",
-            "Smoke Bomb — Nullify damage 2 turns"
+            "Smoke Bomb — Nullify damage 2 turns",
+            "Chronos Hourglass — Reverse time and undo the last action"
         };
         ComboBox<String> item1 = new ComboBox<>();
         item1.getItems().addAll(itemNames);
@@ -160,6 +161,7 @@ public class CombatArenaApp extends Application {
             case 0: return new Potion();
             case 1: return new PowerStone();
             case 2: return new SmokeBomb();
+            case 3: return new items.ChronosHourglass();
             default: return new Potion();
         }
     }

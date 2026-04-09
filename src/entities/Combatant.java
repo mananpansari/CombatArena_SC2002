@@ -11,6 +11,7 @@ import java.util.List;
 public abstract class Combatant implements ICombatant {
 
     // Core identity
+    private final String id;
     private final String name;
 
     // Health
@@ -29,6 +30,7 @@ public abstract class Combatant implements ICombatant {
 
     // Constructor 
     protected Combatant(String name, int hp, int attack, int defense, int speed){
+        this.id = java.util.UUID.randomUUID().toString();
         this.name = name;
         this.hp = hp;
         this.maxHp = hp;
@@ -41,6 +43,11 @@ public abstract class Combatant implements ICombatant {
     }
 
     // ICombatant: Identity
+
+    @Override
+    public String getId(){
+        return id;
+    }
 
     @Override
     public String getName(){
@@ -61,6 +68,11 @@ public abstract class Combatant implements ICombatant {
     @Override
     public void takeDamage(int damage){
         hp = Math.max(0, hp - damage);
+    }
+
+    @Override
+    public void setHp(int hp) {
+        this.hp = Math.max(0, Math.min(this.maxHp, hp));
     }
 
     @Override

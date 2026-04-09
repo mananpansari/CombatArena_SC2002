@@ -48,15 +48,16 @@ public class LoadingScreen {
 
   private List<IItem> chooseItems() {
     List<IItem> selectedItems = new ArrayList<>();
-    System.out.println("Pick 2 items: 1. Potion, 2. Power Stone, 3. Smoke Bomb");
+    System.out.println("Pick 2 items: 1. Potion, 2. Power Stone, 3. Smoke Bomb, 4. Chronos Hourglass");
 
     for (int i = 1; i <= 2; i++){
-      System.out.println("Pick Item " + i + " (1. Potion, 2. Power Stone, 3. Smoke Bomb):");
-      int choice = input.getActionChoice(1, 3);
+      System.out.println("Pick Item " + i + " (1. Potion, 2. Power Stone, 3. Smoke Bomb, 4. Chronos Hourglass):");
+      int choice = input.getActionChoice(1, 4);
       switch (choice) {
         case 1 -> selectedItems.add(new Potion());
         case 2 -> selectedItems.add(new PowerStone());
         case 3 -> selectedItems.add(new SmokeBomb());
+        case 4 -> selectedItems.add(new items.ChronosHourglass());
       }
     }
     return selectedItems;
