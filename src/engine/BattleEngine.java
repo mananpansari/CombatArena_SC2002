@@ -1,11 +1,13 @@
 package engine;
 
+import entities.CombatantDecorator;
 import entities.Combatant;
 import entities.Enemy;
 import entities.Player;
 import interfaces.IAction;
 import interfaces.ICombatant;
 import interfaces.ITurnOrderStrategy;
+import strategies.ICombatStrategy;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,17 +32,40 @@ public class BattleEngine {
         this.roundNumber = 0;
     }
 
+    // ═══════════════════════════════════════════════════
+    //  COMMAND STACK — processTurn wraps every action
+    // ═══════════════════════════════════════════════════
+
     public void processTurn(IAction action, ICombatant attacker, List<ICombatant> targets) {
         ICommand command = new ActionCommand(this, action, attacker, targets);
         command.execute();
         commandHistory.push(command);
     }
 
-    // Run one full round. Returns true if the battle is still going, false if over.
+    // ═══════════════════════════════════════════════════
+    //  DECORATOR UTILITY — unwraps nested decorators
+    // ═══════════════════════════════════════════════════
+
+    /**
+     * Recursively peels off CombatantDecorator layers to reach the
+     * base Player / Enemy / Combatant underneath.
+     * Used for instanceof type-checking while keeping the decorated
+     * version for stat calculations (attack, defense, etc.).
+     */
+    private ICombatant unwrap(ICombatant c) {
+        while (c instanceof CombatantDecorator d) {
+            c = d.getWrappedCombatant();
+        }
+        return c;
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  ROUND LOOP
+    // ═══════════════════════════════════════════════════
+
     public boolean runRound(ActionProvider actionProvider) {
         roundNumber++;
 
-        // Build the full combatant list for turn order
         List<ICombatant> allCombatants = getAllCombatants();
         prepareRound(allCombatants);
 
@@ -51,71 +76,83 @@ public class BattleEngine {
                 continue;
             }
 
-            // Tick status effects at the start of this combatant's turn
+            // Unwrap once per iteration for type checks
+            ICombatant base = unwrap(current);
+
+            // Tick status effects
             current.tickStatusEffects();
 
-            // Stun check: if stunned, skip the turn
+            // Stun check
             if (current.isStunned()) {
                 System.out.printf("  %s is STUNNED and cannot act.%n", current.getName());
-
-                // If this is the player, still decrement cooldown
-                if (current instanceof Player p) {
+                if (base instanceof Player p) {
                     p.decrementCooldown();
                 }
                 finishTurn(current);
                 continue;
             }
 
-            if (current instanceof Player p) {
-                // Decrement cooldown on the player's turn
+            if (base instanceof Player p) {
+                // ── PLAYER TURN ──
                 p.decrementCooldown();
 
-                // Get the action from the UI/input layer
                 List<ICombatant> livingEnemies = getLivingEnemies();
                 IAction action = actionProvider.getPlayerAction(p, livingEnemies);
 
-                // Detect if the user triggered Chronos Hourglass
+                // Detect Chronos Hourglass usage
                 boolean isChronos = false;
-                if (action instanceof actions.ItemAction) {
-                    actions.ItemAction itemAct = (actions.ItemAction) action;
+                if (action instanceof actions.ItemAction itemAct) {
                     if (itemAct.getItem(p) instanceof items.ChronosHourglass) {
                         isChronos = true;
                     }
                 }
 
                 if (isChronos) {
-                    action.perform(p, null); // Consume item and print message
+                    action.perform(p, null);
                     timeReversal();
-                    return true; // Abort the current round execution so it starts again!
+                    return true; // abort to restart from previous round
                 } else {
                     List<ICombatant> targets = actionProvider.getTargets(p, livingEnemies, action);
-                    processTurn(action, p, targets);
+                    processTurn(action, current, targets); // 'current' keeps decorator stats
                 }
 
-            } else if (current instanceof Enemy e) {
-                // Enemies always use BasicAttack on the player
-                processTurn(new actions.BasicAttack(), e, List.of(player));
+            } else if (base instanceof Enemy e) {
+                // ── ENEMY TURN — Strategy Pattern ──
+                ICombatStrategy strategy = e.getStrategy();
+                if (strategy != null) {
+                    // The strategy builds an ActionCommand using 'current'
+                    // (the potentially-decorated version) so that equipment
+                    // bonuses are reflected in damage calculations.
+                    ActionCommand cmd = strategy.decideAction(
+                            this, current, List.of(player), getLivingEnemies());
+                    cmd.execute();
+                    commandHistory.push(cmd);
+                } else {
+                    // Fallback: no strategy assigned → simple basic attack
+                    processTurn(new actions.BasicAttack(), current, List.of(player));
+                }
             }
 
             finishTurn(current);
 
-            // Check loss condition after every action
             if (!player.isAlive()) {
                 return false;
             }
 
-            // Check if initial wave is cleared for backup spawn
             checkBackupSpawn();
 
-            // Check win condition after every action
             if (allEnemiesDead()) {
                 return false;
             }
         }
 
         previewUpcomingRound(getAllCombatants());
-        return true; // battle continues
+        return true;
     }
+
+    // ═══════════════════════════════════════════════════
+    //  ROUND MANAGEMENT (decorator-aware)
+    // ═══════════════════════════════════════════════════
 
     private List<ICombatant> getAllCombatants() {
         List<ICombatant> allCombatants = new ArrayList<>();
@@ -126,7 +163,8 @@ public class BattleEngine {
 
     private void prepareRound(List<ICombatant> combatants) {
         for (ICombatant combatant : combatants) {
-            if (combatant instanceof Combatant concreteCombatant) {
+            ICombatant base = unwrap(combatant);
+            if (base instanceof Combatant concreteCombatant) {
                 concreteCombatant.resetActedThisRound();
                 concreteCombatant.setCurrentRound(roundNumber);
                 concreteCombatant.purgeExpiredStatusEffects();
@@ -135,7 +173,8 @@ public class BattleEngine {
     }
 
     private void finishTurn(ICombatant combatant) {
-        if (combatant instanceof Combatant concreteCombatant) {
+        ICombatant base = unwrap(combatant);
+        if (base instanceof Combatant concreteCombatant) {
             concreteCombatant.markActedThisRound();
             concreteCombatant.purgeExpiredStatusEffects();
         }
@@ -144,7 +183,8 @@ public class BattleEngine {
     private void previewUpcomingRound(List<ICombatant> combatants) {
         int upcomingRound = roundNumber + 1;
         for (ICombatant combatant : combatants) {
-            if (combatant instanceof Combatant concreteCombatant) {
+            ICombatant base = unwrap(combatant);
+            if (base instanceof Combatant concreteCombatant) {
                 concreteCombatant.setCurrentRound(upcomingRound);
                 concreteCombatant.purgeExpiredStatusEffects();
             }
@@ -168,7 +208,8 @@ public class BattleEngine {
             System.out.println("\n  Backup enemies have arrived!");
             for (ICombatant backup : backupEnemies) {
                 System.out.printf("    %s joins the battle!%n", backup.getName());
-                if (backup instanceof Combatant concreteCombatant) {
+                ICombatant base = unwrap(backup);
+                if (base instanceof Combatant concreteCombatant) {
                     concreteCombatant.resetActedThisRound();
                     concreteCombatant.setCurrentRound(roundNumber);
                 }
@@ -177,6 +218,10 @@ public class BattleEngine {
             backupSpawned = true;
         }
     }
+
+    // ═══════════════════════════════════════════════════
+    //  WIN / LOSS
+    // ═══════════════════════════════════════════════════
 
     public boolean allEnemiesDead() {
         for (ICombatant e : enemies) {
@@ -187,32 +232,38 @@ public class BattleEngine {
         return true;
     }
 
-    // Originator method 1: Create the Memento
+    // ═══════════════════════════════════════════════════
+    //  MEMENTO — snapshot / restore
+    // ═══════════════════════════════════════════════════
+
     public BattleSnapshot createSnapshot() {
         return new BattleSnapshot(this.getAllCombatants(), this.enemies, this.backupSpawned, this.roundNumber);
     }
 
-    // Originator method 2: Restore from Memento
     public void restoreSnapshot(BattleSnapshot snapshot) {
         this.roundNumber = snapshot.getRoundNumber();
         this.backupSpawned = snapshot.isBackupSpawned();
-        
-        // Restore enemies list (handles backup un-spawning)
+
         this.enemies.clear();
         this.enemies.addAll(snapshot.getEnemiesSnapshot());
 
         for (ICombatant c : getAllCombatants()) {
+            // getId() on a decorator delegates to the base — so lookup works
             if (snapshot.getHealthMap().containsKey(c.getId())) {
                 int pastHealth = snapshot.getHealthMap().get(c.getId());
                 c.setHp(pastHealth);
             }
-            if (c instanceof Player p && snapshot.getPlayerCooldownMap().containsKey(p.getId())) {
+            ICombatant base = unwrap(c);
+            if (base instanceof Player p && snapshot.getPlayerCooldownMap().containsKey(p.getId())) {
                 p.setSkillCooldown(snapshot.getPlayerCooldownMap().get(p.getId()));
             }
         }
     }
 
-    // Triggering the Chronos Hourglass
+    // ═══════════════════════════════════════════════════
+    //  TIME REVERSAL (Chronos Hourglass)
+    // ═══════════════════════════════════════════════════
+
     public void timeReversal() {
         if (commandHistory.isEmpty()) {
             System.out.println("  You cannot turn back time any further!");
@@ -227,15 +278,17 @@ public class BattleEngine {
                 lastTurn = commandHistory.pop();
                 lastTurn.undo();
             } else {
-                break; // We've removed all actions from the target round and beyond
+                break;
             }
         }
-        
-        // After undoing, the actual state of combatants and enemies is restored.
-        // We set roundNumber = targetRound - 1 so that the next runRound() starts at targetRound.
+
         this.roundNumber = targetRound - 1;
         System.out.println("  Time has been reversed! You are back to the start of Round " + targetRound + "!");
     }
+
+    // ═══════════════════════════════════════════════════
+    //  ACCESSORS
+    // ═══════════════════════════════════════════════════
 
     public List<ICombatant> getLivingEnemies() {
         List<ICombatant> living = new ArrayList<>();
@@ -263,7 +316,10 @@ public class BattleEngine {
         return enemies;
     }
 
-    // Interface that the CLI layer implements to provide player actions
+    // ═══════════════════════════════════════════════════
+    //  ACTION PROVIDER — Boundary layer contract
+    // ═══════════════════════════════════════════════════
+
     public interface ActionProvider {
         IAction getPlayerAction(Player player, List<ICombatant> livingEnemies);
         List<ICombatant> getTargets(Player player, List<ICombatant> livingEnemies, IAction action);

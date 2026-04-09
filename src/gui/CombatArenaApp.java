@@ -140,13 +140,22 @@ public class CombatArenaApp extends Application {
                     List.of(new Goblin("A"), new Goblin("B"), new Goblin("C")),
                     List.of());
             } else if (rbMedium.isSelected()) {
+                // Medium: Wolf B gets a Power Ring (+5 ATK) via Decorator
+                Wolf wolfB = new Wolf("B");
+                interfaces.ICombatant equippedWolf = new PowerRingDecorator(wolfB);
                 level = new LevelConfig("Medium",
                     List.of(new Goblin("A"), new Wolf("A")),
-                    List.of(new Wolf("B"), new Wolf("C")));
+                    List.of(equippedWolf, new Wolf("C")));
             } else {
+                // Hard: Goblin B is a healer (SupportStrategy)
+                Goblin supportGoblin = new Goblin("B");
+                supportGoblin.setStrategy(new strategies.SupportStrategy());
+                // Backup: armored goblin (+10 DEF) and elite wolf (+5 ATK, +10 DEF)
+                interfaces.ICombatant armoredGoblin = new IronArmorDecorator(new Goblin("C"));
+                interfaces.ICombatant eliteWolf = new PowerRingDecorator(new IronArmorDecorator(new Wolf("A")));
                 level = new LevelConfig("Hard",
-                    List.of(new Goblin("A"), new Goblin("B")),
-                    List.of(new Goblin("C"), new Wolf("A"), new Wolf("B")));
+                    List.of(new Goblin("A"), supportGoblin),
+                    List.of(armoredGoblin, eliteWolf));
             }
 
             showBattleScreen(player, level);

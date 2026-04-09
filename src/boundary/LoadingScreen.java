@@ -2,15 +2,13 @@ package boundary;
 
 import engine.GameSession;
 import engine.LevelConfig;
-import entities.Goblin;
-import entities.Player;
-import entities.Warrior;
-import entities.Wizard;
-import entities.Wolf;
+import entities.*;
+import interfaces.ICombatant;
 import interfaces.IItem;
 import items.Potion;
 import items.PowerStone;
 import items.SmokeBomb;
+import strategies.SupportStrategy;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -69,17 +67,41 @@ public class LoadingScreen {
 
     switch (choice) {
       case 1:
+        // Easy: 3 Aggressive Goblins (default strategy)
         return new LevelConfig("Easy",
             List.of(new Goblin("A"), new Goblin("B"), new Goblin("C")),
             List.of());
+
       case 2:
+        // Medium: Mixed strategies
+        // - Goblin A: Aggressive (default)
+        // - Wolf A: Defensive (default)
+        // - Backup: Wolf B with Power Ring (+5 ATK) via Decorator Pattern
+        Wolf wolfB = new Wolf("B");
+        ICombatant equippedWolf = new PowerRingDecorator(wolfB);
         return new LevelConfig("Medium",
             List.of(new Goblin("A"), new Wolf("A")),
-            List.of(new Wolf("B"), new Wolf("C")));
+            List.of(equippedWolf, new Wolf("C")));
+
       case 3:
+        // Hard: Full pattern showcase
+        // - Goblin A: Aggressive (default)
+        // - Goblin B: Support strategy — heals wounded allies
+        Goblin supportGoblin = new Goblin("B");
+        supportGoblin.setStrategy(new SupportStrategy());
+
+        // - Backup wave: an armored goblin (Iron Armor +10 DEF)
+        //   and a wolf with both Power Ring (+5 ATK) AND Iron Armor (+10 DEF)
+        Goblin gobC = new Goblin("C");
+        ICombatant armoredGoblin = new IronArmorDecorator(gobC);
+
+        Wolf wolfA = new Wolf("A");
+        ICombatant eliteWolf = new PowerRingDecorator(new IronArmorDecorator(wolfA));
+
         return new LevelConfig("Hard",
-            List.of(new Goblin("A"), new Goblin("B")),
-            List.of(new Goblin("C"), new Wolf("A"), new Wolf("B")));
+            List.of(new Goblin("A"), supportGoblin),
+            List.of(armoredGoblin, eliteWolf));
+
       default:
         return new LevelConfig("Easy",
             List.of(new Goblin("A"), new Goblin("B"), new Goblin("C")),
