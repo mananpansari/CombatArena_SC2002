@@ -27,8 +27,8 @@ public class HealAction implements IAction {
         target.heal(HEAL_AMOUNT);
         int healed = target.getHp() - prevHp;
 
-        System.out.printf("  %s -> Heal -> %s: +%d HP (HP: %d -> %d)%n",
-                source.getName(), target.getName(), healed, prevHp, target.getHp());
+        System.out.printf("  %s -> Heal -> %s  (+%d HP, now %d/%d)%n",
+                source.getName(), target.getName(), healed, target.getHp(), target.getMaxHp());
     }
 
     @Override

@@ -37,7 +37,7 @@ public class BattleEngine {
     }
 
     // ═══════════════════════════════════════════════════
-    //  OBSERVER REGISTRATION (Subject role)
+    // OBSERVER REGISTRATION (Subject role)
     // ═══════════════════════════════════════════════════
 
     public void registerObserver(IStackObserver observer) {
@@ -49,7 +49,7 @@ public class BattleEngine {
     }
 
     // ═══════════════════════════════════════════════════
-    //  COMMAND STACK — LIFO resolution with reactions
+    // COMMAND STACK — LIFO resolution with reactions
     // ═══════════════════════════════════════════════════
 
     /**
@@ -70,17 +70,10 @@ public class BattleEngine {
         Stack<ActionCommand> resolutionStack = new Stack<>();
         resolutionStack.push(command);
 
-        System.out.printf("  ▸ %s → %s%n",
-                command.getAttacker().getName(),
-                command.getAction().getActionName());
-
         // Notify observers — reactions pile on top
         notifyObservers(resolutionStack, command, 0);
 
         // Resolve LIFO: reactions first, then original action
-        if (resolutionStack.size() > 1) {
-            System.out.println("  Resolving stack...");
-        }
         while (!resolutionStack.isEmpty()) {
             ActionCommand cmd = resolutionStack.pop();
             cmd.execute();
@@ -109,7 +102,7 @@ public class BattleEngine {
     }
 
     // ═══════════════════════════════════════════════════
-    //  DECORATOR UTILITY
+    // DECORATOR UTILITY
     // ═══════════════════════════════════════════════════
 
     private ICombatant unwrap(ICombatant c) {
@@ -120,7 +113,7 @@ public class BattleEngine {
     }
 
     // ═══════════════════════════════════════════════════
-    //  ROUND LOOP
+    // ROUND LOOP
     // ═══════════════════════════════════════════════════
 
     public boolean runRound(ActionProvider actionProvider) {
@@ -141,8 +134,10 @@ public class BattleEngine {
             current.tickStatusEffects();
 
             if (current.isStunned()) {
-                System.out.printf("  %s is STUNNED and cannot act.%n", current.getName());
-                
+                System.out.printf("  %s is stunned - skipping turn%n", current.getName());
+                if (base instanceof Player p) {
+                    p.decrementCooldown();
+                }
                 finishTurn(current);
                 continue;
             }
@@ -200,7 +195,7 @@ public class BattleEngine {
     }
 
     // ═══════════════════════════════════════════════════
-    //  ROUND MANAGEMENT
+    // ROUND MANAGEMENT
     // ═══════════════════════════════════════════════════
 
     private List<ICombatant> getAllCombatants() {
@@ -254,9 +249,10 @@ public class BattleEngine {
         }
 
         if (initialWaveCleared) {
-            System.out.println("\n  Backup enemies have arrived!");
+            System.out.println("");
+            System.out.println("  Backup enemies arrive!");
             for (ICombatant backup : backupEnemies) {
-                System.out.printf("    %s joins the battle!%n", backup.getName());
+                System.out.printf("    + %s joins the battle%n", backup.getName());
                 ICombatant base = unwrap(backup);
                 if (base instanceof Combatant concreteCombatant) {
                     concreteCombatant.resetActedThisRound();
@@ -269,7 +265,7 @@ public class BattleEngine {
     }
 
     // ═══════════════════════════════════════════════════
-    //  WIN / LOSS
+    // WIN / LOSS
     // ═══════════════════════════════════════════════════
 
     public boolean allEnemiesDead() {
@@ -282,7 +278,7 @@ public class BattleEngine {
     }
 
     // ═══════════════════════════════════════════════════
-    //  MEMENTO — snapshot / restore
+    // MEMENTO — snapshot / restore
     // ═══════════════════════════════════════════════════
 
     public BattleSnapshot createSnapshot() {
@@ -309,12 +305,12 @@ public class BattleEngine {
     }
 
     // ═══════════════════════════════════════════════════
-    //  TIME REVERSAL (Chronos Hourglass)
+    // TIME REVERSAL (Chronos Hourglass)
     // ═══════════════════════════════════════════════════
 
     public void timeReversal() {
         if (commandHistory.isEmpty()) {
-            System.out.println("  You cannot turn back time any further!");
+            System.out.println("  No actions to undo!");
             return;
         }
 
@@ -331,11 +327,11 @@ public class BattleEngine {
         }
 
         this.roundNumber = targetRound - 1;
-        System.out.println("  Time has been reversed! You are back to the start of Round " + targetRound + "!");
+        System.out.println("  Time reversed! Back to Round " + targetRound);
     }
 
     // ═══════════════════════════════════════════════════
-    //  ACCESSORS
+    // ACCESSORS
     // ═══════════════════════════════════════════════════
 
     public List<ICombatant> getLivingEnemies() {
@@ -365,11 +361,12 @@ public class BattleEngine {
     }
 
     // ═══════════════════════════════════════════════════
-    //  ACTION PROVIDER — Boundary layer contract
+    // ACTION PROVIDER — Boundary layer contract
     // ═══════════════════════════════════════════════════
 
     public interface ActionProvider {
         IAction getPlayerAction(Player player, List<ICombatant> livingEnemies);
+
         List<ICombatant> getTargets(Player player, List<ICombatant> livingEnemies, IAction action);
     }
 }

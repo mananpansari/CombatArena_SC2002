@@ -1,6 +1,5 @@
 package entities;
 
-import interfaces.ICombatant;
 import strategies.ICombatStrategy;
 import strategies.AggressiveStrategy;
 
@@ -31,30 +30,5 @@ public abstract class Enemy extends Combatant {
         this.strategy = strategy;
     }
 
-    // ── Legacy turn method (kept for backward compatibility) ──
-
-    public void takeTurn(ICombatant player) {
-        int rawDamage = this.getAttack() - player.getDefense();
-        int damage = Math.max(0, rawDamage);
-
-        if (player.hasSmokeBombActive()) {
-            damage = 0;
-        }
-
-        System.out.printf("  %s -> BasicAttack -> %s: %d damage%n",
-                this.getName(), player.getName(), damage);
-
-        player.takeDamage(damage);
-    }
-
     public abstract String getEnemyType();
-
-    public void printStats() {
-        System.out.printf("  %-8s HP:%-4d ATK:%-4d DEF:%-4d SPD:%-4d%n",
-                getEnemyType(),
-                getMaxHp(),
-                getAttack(),
-                getDefense(),
-                getSpeed());
-    }
 }

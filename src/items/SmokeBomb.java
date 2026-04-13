@@ -11,7 +11,7 @@ public class SmokeBomb implements IItem {
     @Override
     public void use(ICombatant user, List<ICombatant> enemies) {
         user.applyStatusEffect(new SmokeBombEffect());
-        System.out.printf("  %s -> Item -> Smoke Bomb used: Enemy attacks deal 0 damage this turn and next round%n",
+        System.out.printf("  %s -> Smoke Bomb  (nullify damage for 2 rounds)%n",
                 user.getName());
     }
 

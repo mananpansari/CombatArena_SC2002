@@ -28,7 +28,7 @@ public class CounterAttackAction implements IAction {
         }
 
         target.takeDamage(thornsDamage);
-        System.out.printf("  ⚡ %s counter-attacks %s for %d thorns damage!%n",
+        System.out.printf("  %s -> Counter -> %s  (%d thorns damage)%n",
                 source.getName(), target.getName(), thornsDamage);
     }
 

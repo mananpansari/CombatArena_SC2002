@@ -14,11 +14,11 @@ public class Potion implements IItem {
         int previousHp = user.getHp();
         user.heal(healAmount);
 
-        System.out.printf("  %s -> Item -> Potion used: HP: %d -> %d (+%d)%n",
+        System.out.printf("  %s -> Potion  (+%d HP, now %d/%d)%n",
                 user.getName(),
-                previousHp,
+                user.getHp() - previousHp,
                 user.getHp(),
-                user.getHp() - previousHp);
+                user.getMaxHp());
     }
 
     @Override

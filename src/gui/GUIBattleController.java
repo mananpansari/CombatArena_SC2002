@@ -130,22 +130,27 @@ public class GUIBattleController implements BattleEngine.ActionProvider {
     // ═══════════════════════════════════════════════
 
     private void runBattleLoop() {
-        log("═══ BATTLE START ═══");
-        log("Player: " + player.getName() + " | HP:" + player.getHp()
-                + " ATK:" + player.getAttack() + " DEF:" + player.getDefense()
-                + " SPD:" + player.getSpeed());
+        log("══════════ BATTLE START ══════════");
+        log("");
+        log("  " + player.getName() + "  HP:" + player.getHp()
+                + "  ATK:" + player.getAttack() + "  DEF:" + player.getDefense()
+                + "  SPD:" + player.getSpeed());
+        log("");
+        log("  Enemies:");
         for (ICombatant e : engine.getEnemies()) {
-            log("  Enemy: " + e.getName() + " | HP:" + e.getHp()
-                    + " ATK:" + e.getAttack() + " DEF:" + e.getDefense()
-                    + " SPD:" + e.getSpeed());
+            log("    " + e.getName() + "  HP:" + e.getHp()
+                    + "  ATK:" + e.getAttack() + "  DEF:" + e.getDefense()
+                    + "  SPD:" + e.getSpeed());
         }
         log("");
+        log("══════════════════════════════════");
 
         boolean battleContinues = true;
         while (battleContinues) {
             int round = engine.getRoundNumber() + 1;
             Platform.runLater(() -> roundLabel.setText("⚔  Round " + round));
-            log("──── Round " + round + " ────");
+            log("");
+            log("─────── Round " + round + " ───────");
             refreshStatus();
 
             battleContinues = engine.runRound(this);
@@ -165,15 +170,18 @@ public class GUIBattleController implements BattleEngine.ActionProvider {
 
     private void showBattleResult() {
         boolean playerWon = player.isAlive() && engine.allEnemiesDead();
-        log("\n═══ BATTLE " + (playerWon ? "WON" : "LOST") + " ═══");
+        log("");
+        log("══════════════════════════════════");
+        log(playerWon ? "         VICTORY" : "          DEFEAT");
+        log("══════════════════════════════════");
 
         if (playerWon) {
-            log(player.getName() + " wins with " + player.getHp() + "/" + player.getMaxHp() + " HP remaining.");
-            log("Rounds survived: " + engine.getRoundNumber());
+            log("  " + player.getName() + "  " + player.getHp() + "/" + player.getMaxHp() + " HP remaining");
+            log("  Rounds: " + engine.getRoundNumber());
         } else {
-            log(player.getName() + " has fallen.");
-            log("Enemies remaining: " + engine.getLivingEnemies().size());
-            log("Rounds survived: " + engine.getRoundNumber());
+            log("  " + player.getName() + " has fallen");
+            log("  Enemies remaining: " + engine.getLivingEnemies().size());
+            log("  Rounds survived: " + engine.getRoundNumber());
         }
 
         Platform.runLater(() -> {
@@ -257,15 +265,13 @@ public class GUIBattleController implements BattleEngine.ActionProvider {
 
         // 1) Basic Attack
         Button atkBtn = styledButton("Basic Attack", "#3498db");
-        atkBtn.setOnAction(e -> showTargetPicker(livingEnemies, target -> {
-            log("  ➤ " + player.getName() + " → Basic Attack → " + target.getName());
+        atkBtn.setOnAction(e -> showTargetPicker(player, livingEnemies, target -> {
             submitAction(new BasicAttack(), List.of(target));
         }));
 
         // 2) Defend
         Button defBtn = styledButton("Defend", "#2ecc71");
         defBtn.setOnAction(e -> {
-            log("  ➤ " + player.getName() + " → Defend (+10 DEF)");
             submitAction(new DefendAction(), List.of(player));
         });
 
@@ -283,13 +289,11 @@ public class GUIBattleController implements BattleEngine.ActionProvider {
             Button skillBtn = styledButton("Special Skill", "#9b59b6");
             skillBtn.setOnAction(e -> {
                 if (player instanceof Warrior) {
-                    showTargetPicker(livingEnemies, target -> {
-                        log("  ➤ " + player.getName() + " → " + player.getSkillName() + " → " + target.getName());
+                    showTargetPicker(player, livingEnemies, target -> {
                         submitAction(new SpecialSkillAction(), List.of(target));
                     });
                 } else {
                     // Wizard targets all
-                    log("  ➤ " + player.getName() + " → " + player.getSkillName() + " → All Enemies");
                     submitAction(new SpecialSkillAction(), new ArrayList<>(livingEnemies));
                 }
             });
@@ -303,7 +307,7 @@ public class GUIBattleController implements BattleEngine.ActionProvider {
 
     // ── Target picker ───────────────────────────
 
-    private void showTargetPicker(List<ICombatant> enemies, java.util.function.Consumer<ICombatant> callback) {
+    private void showTargetPicker(Player player, List<ICombatant> enemies, java.util.function.Consumer<ICombatant> callback) {
         actionBar.getChildren().clear();
 
         Label prompt = new Label("Choose target:");
@@ -316,6 +320,11 @@ public class GUIBattleController implements BattleEngine.ActionProvider {
             btn.setOnAction(e -> callback.accept(enemy));
             actionBar.getChildren().add(btn);
         }
+
+        // Back button
+        Button backBtn = styledButton("Back", "#7f8c8d");
+        backBtn.setOnAction(e -> showActionButtons(player, enemies));
+        actionBar.getChildren().add(backBtn);
     }
 
     // ── Item picker ─────────────────────────────
@@ -334,7 +343,6 @@ public class GUIBattleController implements BattleEngine.ActionProvider {
             final int itemIndex = i;
             Button btn = styledButton(item.getItemName(), "#e67e22");
             btn.setOnAction(e -> {
-                log("  ➤ " + player.getName() + " → Item → " + item.getItemName());
                 submitAction(new ItemAction(itemIndex), new ArrayList<>(livingEnemies));
             });
             actionBar.getChildren().add(btn);

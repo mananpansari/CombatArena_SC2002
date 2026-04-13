@@ -18,14 +18,14 @@ public class BasicAttack implements IAction {
         }
 
         int damage = Math.max(0, source.getAttack() - target.getDefense());
-        
+
         if (target.hasSmokeBombActive()) {
             damage = 0;
         }
 
         target.takeDamage(damage);
 
-        System.out.printf("  %s -> Basic Attack -> %s: %d damage%n",
+        System.out.printf("  %s -> Basic Attack -> %s  (%d damage)%n",
                 source.getName(), target.getName(), damage);
     }
 

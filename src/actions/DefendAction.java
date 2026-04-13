@@ -15,7 +15,7 @@ public class DefendAction implements IAction {
 
         source.applyStatusEffect(new DefendEffect());
 
-        System.out.printf("  %s -> Defend: +10 DEF for this round and next round%n", source.getName());
+        System.out.printf("  %s -> Defend  (+10 DEF for 2 rounds)%n", source.getName());
     }
 
     @Override

@@ -34,7 +34,7 @@ public class GameSession {
         System.out.printf("  Difficulty: %s%n", level.getDifficulty());
         System.out.printf("  Player: %s%n", player.getName());
         if (!level.getObservers().isEmpty()) {
-            System.out.printf("  ⚡ %d reactive observer(s) active%n", level.getObservers().size());
+            System.out.printf("  %d reactive observer(s) active%n", level.getObservers().size());
         }
         System.out.println();
 

@@ -8,7 +8,7 @@ public class ChronosHourglass implements IItem {
 
     @Override
     public void use(ICombatant user, List<ICombatant> enemies) {
-        System.out.println("  The sands of time begin to swirl around " + user.getName() + "... Time is reversing!");
+        System.out.printf("  %s -> Chronos Hourglass  (reversing time...)%n", user.getName());
         // Actual time reversal is handled by the BattleEngine detecting this item.
     }
 

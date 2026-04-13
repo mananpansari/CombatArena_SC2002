@@ -14,7 +14,7 @@ public class PowerStone implements IItem {
             throw new IllegalArgumentException("Power Stone can only be used by a player.");
         }
 
-        System.out.printf("  %s -> Item -> Power Stone used: %s triggered (cooldown unchanged)%n",
+        System.out.printf("  %s -> Power Stone  (triggers %s, no cooldown)%n",
                 player.getName(),
                 player.getSkillName());
         player.executeSkillEffect(enemies);
