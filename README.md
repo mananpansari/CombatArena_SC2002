@@ -26,3 +26,6 @@ To set up the project locally:
 4. Ensure Java 17 or newer is installed:
    java -version
 
+## Usage Instructions
+
+After compiling the project, 
