@@ -135,9 +135,6 @@ public class BattleEngine {
 
             if (current.isStunned()) {
                 System.out.printf("  %s is stunned - skipping turn%n", current.getName());
-                if (base instanceof Player p) {
-                    p.decrementCooldown();
-                }
                 finishTurn(current);
                 continue;
             }
