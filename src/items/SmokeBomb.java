@@ -6,6 +6,11 @@ import interfaces.IItem;
 
 import java.util.List;
 
+/**
+ * Applies SmokeBombEffect to the user, causing all incoming
+ * enemy BasicAttack damage to be reduced to 0 for the current
+ * and next round. Implements IItem. Consumed from inventory on use.
+ */
 public class SmokeBomb implements IItem {
 
     @Override
