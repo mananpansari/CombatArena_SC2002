@@ -4,7 +4,7 @@ import interfaces.ICombatant;
 import entities.Player;
 import java.util.List;
 
-public class GameUi {
+public class GameUI {
 
 public void displayCombatantStatus(Player player, List<ICombatant> enemies) {
     System.out.println("\n========================================");
