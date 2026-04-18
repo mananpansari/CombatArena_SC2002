@@ -28,7 +28,7 @@ To set up the project locally:
 
 ---
 
-## Usage
+## Usage Instructions
 
 After compiling the project, the system can be run through the integrated game logic in the project or using an IDE such as Eclipse.
 
@@ -36,8 +36,8 @@ Typical usage flow:
 - Choose a character (e.g. Warrior or Wizard)
 - Select a difficulty level
 - Enter turn-based combat with enemies
-- Perform actions such as attack, defend, skill usage, or item usage
-- Continue until all enemies are defeated or the player loses
+- Choose actions such as attack, defend, skill usage, or item usage during battle
+- Game progresses round by round until all enemies are defeated or the player is eliminated
 
 ---
 
@@ -45,7 +45,7 @@ Typical usage flow:
 
 - Java Development Kit (JDK) 17 or newer
 
-No external libraries are required. The project uses only standard Java.
+- Standard Java libraries only (no external libraries are required, the project uses only standard Java)
 
 ---
 
