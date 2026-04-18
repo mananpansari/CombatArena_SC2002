@@ -6,6 +6,13 @@ import interfaces.IItem;
 
 import java.util.List;
 
+/**
+ * Triggers the player's special skill effect once without
+ * starting or modifying the cooldown timer.
+ * Calls executeSkillEffect() directly rather than useSpecialSkill()
+ * to avoid incorrectly resetting the cooldown.
+ * Implements IItem. Consumed from inventory on use.
+ */
 public class PowerStone implements IItem {
 
     @Override
