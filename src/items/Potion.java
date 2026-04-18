@@ -5,6 +5,11 @@ import interfaces.IItem;
 
 import java.util.List;
 
+/**
+ * Restores 100 HP to the user, capped at max HP.
+ * New HP = min(current HP + 100, max HP).
+ * Implements IItem. Consumed from inventory on use.
+ */
 public class Potion implements IItem {
 
     private static final int healAmount = 100;
