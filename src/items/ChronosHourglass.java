@@ -4,6 +4,13 @@ import interfaces.ICombatant;
 import interfaces.IItem;
 import java.util.List;
 
+/**
+ * Triggers BattleEngine.timeReversal() when used, restoring
+ * all HP, cooldowns and enemy state to the previous round.
+ * The actual reversal logic is handled by BattleEngine since
+ * it requires direct engine coordination beyond IItem.use().
+ * Implements IItem. Consumed from inventory on use.
+ */
 public class ChronosHourglass implements IItem {
 
     @Override
