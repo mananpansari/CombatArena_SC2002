@@ -32,12 +32,17 @@ To set up the project locally:
 
 After compiling the project, the system can be run through the integrated game logic in the project or using an IDE such as Eclipse.
 
-Typical usage flow:
-- Choose a character (e.g. Warrior or Wizard)
-- Select a difficulty level
-- Enter turn-based combat with enemies
-- Choose actions such as attack, defend, skill usage, or item usage during battle
-- Game progresses round by round until all enemies are defeated or the player is eliminated
+Typical gameplay flow:
+1. Select a player character (Warrior or Wizard)
+2. Choose items
+3. Select a difficulty level
+4. Enter turn-based combat
+5. Use available actions each turn:
+   - BasicAttack
+   - Defend
+   - Item
+   - SpecialSkill
+6. Continue until all enemies are defeated or the player is defeated
 
 ---
 
