@@ -65,7 +65,15 @@ public class InputHandler implements BattleEngine.ActionProvider {
   @Override
   public List<ICombatant> getTargets(Player player, List<ICombatant> livingEnemies, IAction action) {
     if (action instanceof actions.DefendAction) return List.of(player);
-    if (action instanceof actions.ItemAction) return List.of(player);
+    if (action instanceof actions.ItemAction ia){
+      if (ia. getItem(player) instanceof items.PowerStone){
+        return livingEnemies;
+      }
+      return List.of(player);
+    }
+    if (action instanceof actions.SpecialSkillAction && player instanceof entities.Wizard){
+      return livingEnemies;
+    }
     System.out.println("Select Target:");
     for (int i = 0; i < livingEnemies.size(); i++) {
       System.out.printf("%d. %s (HP: %d)%n", i + 1, livingEnemies.get(i).getName(), livingEnemies.get(i).getHp());
