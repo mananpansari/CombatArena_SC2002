@@ -135,7 +135,12 @@ public class Main {
         @Override
         public List<ICombatant> getTargets(Player p, List<ICombatant> livingEnemies, IAction action) {
             if (action instanceof DefendAction) return List.of();
-            if (action instanceof ItemAction) return List.of();
+            if (action instanceof ItemAction ia){
+                if (ia.getItem(p) instanceof items.PowerStone){
+                    return livingEnemies;
+                }
+                return List.of();
+            }
             if (action instanceof SpecialSkillAction && p instanceof entities.Wizard) {
                 return livingEnemies;
             }
