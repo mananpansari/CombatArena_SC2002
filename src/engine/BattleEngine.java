@@ -208,7 +208,6 @@ public class BattleEngine {
             if (base instanceof Combatant concreteCombatant) {
                 concreteCombatant.resetActedThisRound();
                 concreteCombatant.setCurrentRound(roundNumber);
-                concreteCombatant.purgeExpiredStatusEffects();
             }
         }
     }
@@ -227,7 +226,6 @@ public class BattleEngine {
             ICombatant base = unwrap(combatant);
             if (base instanceof Combatant concreteCombatant) {
                 concreteCombatant.setCurrentRound(upcomingRound);
-                concreteCombatant.purgeExpiredStatusEffects();
             }
         }
     }

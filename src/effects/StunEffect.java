@@ -11,7 +11,7 @@ public class StunEffect implements IStatusEffect {
     @Override
     public void onApply(ICombatant target) {
         Combatant combatant = requireCombatant(target);
-        remainingSkips = combatant.hasActedThisRound() ? 1 : 2;
+        remainingSkips = 2;
     }
 
     @Override
