@@ -76,7 +76,7 @@ private LevelConfig selectDifficulty() {
         ICombatant equippedWolf = new PowerRingDecorator(wolfB);
         return new LevelConfig("Medium",
             List.of(new Goblin("A"), new Wolf("A")),
-            List.of(equippedWolf, new Wolf("C")));
+            List.of(equippedWolf, new Wolf("A")));
     case 3:
         Goblin supportGoblin = new Goblin("B");
         supportGoblin.setStrategy(new SupportStrategy());
