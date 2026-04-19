@@ -43,10 +43,10 @@ private Player createPlayer() {
 private List<IItem> chooseItems() {
     List<IItem> selectedItems = new ArrayList<>();
     System.out.println("\nPick 2 items:");
-    System.out.println("1. Potion - Restores 100 HP");
-    System.out.println("2. Power Stone - Boosts next special skill");
-    System.out.println("3. Smoke Bomb  - Reduces enemy accuracy");
-    System.out.println("4. Chronos Hourglass - Rewind last action");
+    System.out.println("1. Potion - Restores 100 HP, cannot heal beyond max HP");
+    System.out.println("2. Power Stone - Triggers special skill without cooldown");
+    System.out.println("3. Smoke Bomb  - Enemy attacks miss for 2 rounds");
+    System.out.println("4. Chronos Hourglass - Reverses time to the last round");
     for (int i = 1; i <= 2; i++) {
     System.out.printf("Pick Item %d (1-4): ", i);
     int choice = input.getActionChoice(1, 4);
