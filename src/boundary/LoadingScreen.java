@@ -43,9 +43,9 @@ private Player createPlayer() {
 private List<IItem> chooseItems() {
     List<IItem> selectedItems = new ArrayList<>();
     System.out.println("\nPick 2 items:");
-    System.out.println("1. Potion       - Restores 30 HP");
-    System.out.println("2. Power Stone  - Boosts next special skill");
-    System.out.println("3. Smoke Bomb   - Reduces enemy accuracy");
+    System.out.println("1. Potion - Restores 100 HP");
+    System.out.println("2. Power Stone - Boosts next special skill");
+    System.out.println("3. Smoke Bomb  - Reduces enemy accuracy");
     System.out.println("4. Chronos Hourglass - Rewind last action");
     for (int i = 1; i <= 2; i++) {
     System.out.printf("Pick Item %d (1-4): ", i);
@@ -62,7 +62,7 @@ private List<IItem> chooseItems() {
 
 private LevelConfig selectDifficulty() {
     System.out.println("\nSelect Difficulty:");
-    System.out.println("1. Easy   - 3 Goblins");
+    System.out.println("1. Easy  - 3 Goblins");
     System.out.println("2. Medium - Goblin + Wolves with equipment");
     System.out.println("3. Hard   - Full enemy team with AI strategies");
     int choice = input.getActionChoice(1, 3);
