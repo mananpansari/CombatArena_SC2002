@@ -31,8 +31,10 @@ public class Warrior extends Player {
         System.out.printf("  %s -> Shield Bash -> %s  (%d damage)%n",
                 this.getName(), target.getName(), damage);
 
+        if (target.isAlive()) { 
         target.applyStatusEffect(new StunEffect());
         System.out.printf("    %s is now stunned (2 turns)%n", target.getName());
+}
     }
 
     @Override

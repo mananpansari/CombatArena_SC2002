@@ -16,13 +16,20 @@ public class Main {
     private static final Scanner sc = new Scanner(System.in);
 
     public static void main(String[] args) {
-        printBanner();
+    printBanner();
+    boolean playing = true;
+    while (playing) {
         List<IItem> items = chooseItems();
         Player player = chooseClass(items);
         LevelConfig level = chooseDifficulty();
         System.out.println();
         new GameSession(player, level).start(new CLIActionProvider());
+        System.out.println("\nPlay again? (yes/no)");
+        String input = sc.nextLine().trim().toLowerCase();
+        playing = input.equals("yes");
     }
+    System.out.println("Thanks for playing!");
+}
 
     private static void printBanner() {
         System.out.println("╔══════════════════════════════════╗");

@@ -116,6 +116,11 @@ public abstract class Combatant implements ICombatant {
 
     @Override
     public void applyStatusEffect(IStatusEffect effect){
+        for (IStatusEffect existing : activeEffects) {
+            if (existing.getEffectName().equals(effect.getEffectName())) {
+                return; // already active, don't stack
+            }
+        }
         effect.onApply(this);
         activeEffects.add(effect);
     }
@@ -126,6 +131,7 @@ public abstract class Combatant implements ICombatant {
             effect.onTurnStart(this);
         }
     }
+
 
     public void purgeExpiredStatusEffects() {
         Iterator<IStatusEffect> it = activeEffects.iterator();
